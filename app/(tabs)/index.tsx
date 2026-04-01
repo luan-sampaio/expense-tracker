@@ -5,6 +5,8 @@ import { Spacer } from '@/src/components/ui/Spacer';
 import { BalanceHeader } from '@/src/components/dashboard/BalanceHeader';
 import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
 import { Typography } from '@/src/components/ui/Typography';
+import { Button } from '@/src/components/ui/Button';
+import { router } from 'expo-router';
 import { theme } from '@/src/styles/theme';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 
@@ -24,7 +26,12 @@ export default function HomeScreen() {
       >
         <Spacer size="xxl" />
         <BalanceHeader />
-        <Spacer size="xxl" />
+        
+        <Container padding="lg" flex={0}>
+          <Button label="+ Nova Transação" onPress={() => router.push('/modal')} />
+        </Container>
+        
+        <Spacer size="lg" />
         
         <Container padding="lg" flex={0}>
           <Typography variant="title" weight="semibold">
