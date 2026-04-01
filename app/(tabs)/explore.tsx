@@ -1,112 +1,136 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { Container } from '@/src/components/ui/Container';
+import { Typography } from '@/src/components/ui/Typography';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { theme } from '@/src/styles/theme';
+import { useExpenseStore } from '@/src/store/useExpenseStore';
+import { PieChart } from 'react-native-chart-kit';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const screenWidth = Dimensions.get('window').width;
 
-export default function TabTwoScreen() {
+// Premium Color Palette for the chart
+const CHART_COLORS = [
+  '#FF3B30', // Red
+  '#FF9500', // Orange
+  '#FFCC00', // Yellow
+  '#34C759', // Green
+  '#5AC8FA', // Light Blue
+  '#007AFF', // Blue
+  '#5856D6', // Purple
+  '#FF2D55', // Pink
+];
+
+export default function ExploreScreen() {
+  const transactions = useExpenseStore((state) => state.transactions);
+
+  // Somatório de despesas por categoria
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'expense')
+    .reduce((acc, current) => {
+      const cat = current.category.charAt(0).toUpperCase() + current.category.slice(1);
+      if (!acc[cat]) acc[cat] = 0;
+      acc[cat] += current.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const chartData = Object.keys(expensesByCategory).map((categoryName, index) => {
+    return {
+      name: categoryName,
+      population: expensesByCategory[categoryName],
+      color: CHART_COLORS[index % CHART_COLORS.length],
+      legendFontColor: theme.colors.primaryText,
+      legendFontSize: 14,
+    };
+  }).sort((a, b) => b.population - a.population);
+
+  const totalExpenses = Object.values(expensesByCategory).reduce((a, b) => a + b, 0);
+
+  const chartConfig = {
+    backgroundGradientFrom: theme.colors.background,
+    backgroundGradientTo: theme.colors.background,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <Container padding={0} backgroundColor={theme.colors.background}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Spacer size="xxl" />
+        <Container padding="lg" flex={0}>
+          <Typography variant="heading" weight="bold">
+            Analytics
+          </Typography>
+          <Typography variant="body" color={theme.colors.secondaryText}>
+            Distribuição dos seus Gastos
+          </Typography>
+        </Container>
+        
+        <Spacer size="xl" />
+
+        {chartData.length === 0 ? (
+          <Container padding="lg" flex={0}>
+            <View style={styles.emptyCard}>
+              <Typography variant="body" color={theme.colors.secondaryText} align="center">
+                Adicione despesas para visualizar o seu gráfico.
+              </Typography>
+            </View>
+          </Container>
+        ) : (
+          <View style={styles.chartWrapper}>
+            <PieChart
+              data={chartData}
+              width={screenWidth}
+              height={220}
+              chartConfig={chartConfig}
+              accessor={"population"}
+              backgroundColor={"transparent"}
+              paddingLeft={"15"}
+              absolute 
+            />
+          </View>
+        )}
+
+        <Spacer size="xl" />
+
+        <Container padding="lg" flex={0}>
+          <Typography variant="title" weight="semibold">
+            Resumo de Gastos
+          </Typography>
+          <Spacer size="md" />
+          <View style={styles.summaryBox}>
+            <Typography variant="body" weight="medium">
+              Total Acumulado
+            </Typography>
+            <Typography variant="heading" weight="bold" color={theme.colors.expense}>
+              R$ {totalExpenses.toFixed(2).replace('.', ',')}
+            </Typography>
+          </View>
+        </Container>
+
+      </ScrollView>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  scroll: {
+    flexGrow: 1,
+    paddingBottom: theme.spacing.xxl,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  chartWrapper: {
+    alignItems: 'center',
+    marginVertical: theme.spacing.md,
   },
+  emptyCard: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.xl,
+    borderRadius: theme.borderRadius.lg,
+  },
+  summaryBox: {
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  }
 });
