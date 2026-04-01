@@ -1,11 +1,12 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Typography } from '../ui/Typography';
-import { Spacer } from '../ui/Spacer';
+import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { Transaction } from '@/src/types';
+import { router } from 'expo-router';
+import React from 'react';
+import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
-import { useExpenseStore } from '@/src/store/useExpenseStore';
+import { Spacer } from '../ui/Spacer';
+import { Typography } from '../ui/Typography';
 
 interface Props {
   transaction: Transaction;
@@ -29,6 +30,33 @@ export function TransactionItem({ transaction }: Props) {
     ]);
   };
 
+  const handleEdit = () => {
+    router.push({
+      pathname: '/modal',
+      params: { 
+        editId: transaction.id,
+        editAmount: transaction.amount.toString(),
+        editDescription: transaction.description,
+        editCategory: transaction.category,
+        editType: transaction.type,
+      }
+    });
+  };
+
+  const renderLeftActions = () => {
+    return (
+      <TouchableOpacity 
+        style={styles.editAction} 
+        onPress={handleEdit}
+        activeOpacity={0.8}
+      >
+        <Typography variant="body" weight="bold" color={theme.colors.background}>
+          Editar
+        </Typography>
+      </TouchableOpacity>
+    );
+  };
+
   const renderRightActions = () => {
     return (
       <TouchableOpacity 
@@ -45,7 +73,9 @@ export function TransactionItem({ transaction }: Props) {
 
   return (
     <Swipeable 
+      renderLeftActions={renderLeftActions}
       renderRightActions={renderRightActions}
+      overshootLeft={false}
       overshootRight={false}
       containerStyle={styles.swipeableContainer}
     >
@@ -110,6 +140,14 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  editAction: {
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    width: 100,
+    paddingLeft: theme.spacing.xl,
+    borderRadius: theme.borderRadius.md,
   },
   deleteAction: {
     backgroundColor: '#FF3B30',
