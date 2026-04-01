@@ -15,7 +15,6 @@ import { useExpenseStore } from '@/src/store/useExpenseStore';
 export default function HomeScreen() {
   const transactions = useExpenseStore((state) => state.transactions);
 
-  // Ordenar por data mais recente
   const sortedTransactions = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );

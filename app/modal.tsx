@@ -20,7 +20,6 @@ export default function ModalScreen() {
   const handleSave = () => {
     if (!amount || !description) return;
     
-    // Simple parsing logic (e.g. 50,00 -> 50.00)
     const numericAmount = parseFloat(amount.replace(',', '.'));
     
     if (isNaN(numericAmount)) return;
@@ -46,7 +45,6 @@ export default function ModalScreen() {
       </Typography>
       <Spacer size="lg" />
 
-      {/* Type Selector */}
       <View style={styles.typeSelector}>
         <Button 
           label="Despesa" 

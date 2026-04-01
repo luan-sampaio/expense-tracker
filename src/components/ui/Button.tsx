@@ -25,7 +25,7 @@ export function Button({
   const getBackgroundColor = () => {
     if (disabled) return theme.colors.border;
     switch (variant) {
-      case 'primary': return theme.colors.primaryText; // Black button for minimalist look
+      case 'primary': return theme.colors.primaryText;
       case 'secondary': return theme.colors.surface;
       case 'danger': return theme.colors.expense;
       case 'ghost': return 'transparent';

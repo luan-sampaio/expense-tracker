@@ -9,22 +9,20 @@ import { PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
 
-// Premium Color Palette for the chart
 const CHART_COLORS = [
-  '#FF3B30', // Red
-  '#FF9500', // Orange
-  '#FFCC00', // Yellow
-  '#34C759', // Green
-  '#5AC8FA', // Light Blue
-  '#007AFF', // Blue
-  '#5856D6', // Purple
-  '#FF2D55', // Pink
+  '#FF3B30',
+  '#FF9500',
+  '#FFCC00',
+  '#34C759',
+  '#5AC8FA',
+  '#007AFF',
+  '#5856D6',
+  '#FF2D55',
 ];
 
 export default function ExploreScreen() {
   const transactions = useExpenseStore((state) => state.transactions);
 
-  // Somatório de despesas por categoria
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, current) => {

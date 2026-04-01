@@ -1,13 +1,13 @@
 export const theme = {
   colors: {
-    background: '#FFFFFF', // Pure white background
-    surface: '#F6F6F8', // Subtle off-white for cards/containers
-    primaryText: '#1C1C1E', // Almost black for high contrast minimal text
-    secondaryText: '#8E8E93', // Clean gray for supporting text
-    border: '#E5E5EA', // Ultra light gray for separators
-    income: '#34C759', // Vibrant but soft green
+    background: '#FFFFFF',
+    surface: '#F6F6F8',
+    primaryText: '#1C1C1E',
+    secondaryText: '#8E8E93',
+    border: '#E5E5EA',
+    income: '#34C759',
     incomeBackground: '#E8F5E9',
-    expense: '#FF3B30', // Vibrant red
+    expense: '#FF3B30',
     expenseBackground: '#FFEBEE',
   },
   spacing: {
@@ -35,7 +35,7 @@ export const theme = {
   },
   borderRadius: {
     sm: 8,
-    md: 14, // iOS style roundness
+    md: 14,
     lg: 20,
     pill: 9999,
   },

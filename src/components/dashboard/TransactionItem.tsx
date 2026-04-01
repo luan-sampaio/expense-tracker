@@ -23,7 +23,6 @@ export function TransactionItem({ transaction }: Props) {
   const dateStr = new Date(transaction.date).toLocaleDateString('pt-BR');
 
   const handleDelete = () => {
-    // Portfólio Dica: Adicionar uma pequena confirmação mostra cuidado com UX
     Alert.alert('Apagar transação?', 'Essa ação não pode ser desfeita.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Apagar', style: 'destructive', onPress: () => removeTransaction(transaction.id) },
@@ -86,7 +85,7 @@ export function TransactionItem({ transaction }: Props) {
 
 const styles = StyleSheet.create({
   swipeableContainer: {
-    backgroundColor: '#FF3B30', // Red background showing up when swiping
+    backgroundColor: '#FF3B30',
     borderRadius: theme.borderRadius.md,
     marginBottom: theme.spacing.sm,
   },
@@ -98,7 +97,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
-    // Add a very subtle shadow/border to float above the swipe background
     borderWidth: 1,
     borderColor: theme.colors.border,
   },

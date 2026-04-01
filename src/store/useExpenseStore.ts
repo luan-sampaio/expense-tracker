@@ -34,7 +34,7 @@ export const useExpenseStore = create<ExpenseState>()(
       clearAll: () => set({ transactions: [] }),
     }),
     {
-      name: 'expense-storage', // key in AsyncStorage
+      name: 'expense-storage',
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

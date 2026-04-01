@@ -46,7 +46,6 @@ export function BudgetRuleWidget() {
     .filter((t) => t.type === 'income')
     .reduce((acc, t) => acc + t.amount, 0);
 
-  // Categorização Simplificada para o Portfólio
   const needsKeywords = ['food', 'comida', 'mercado', 'housing', 'casa', 'aluguel', 'transport', 'transporte', 'saúde', 'conta', 'luz', 'agua'];
   const savingsKeywords = ['investimento', 'poupança', 'reserva', 'saving'];
 
@@ -61,7 +60,7 @@ export function BudgetRuleWidget() {
 
     if (isSaving) spentSavings += t.amount;
     else if (isNeed) spentNeeds += t.amount;
-    else spentWants += t.amount; // Tudo que não é essencial ou investimento é "Desejo"
+    else spentWants += t.amount;
   });
 
   const limitNeeds = income * 0.5;
