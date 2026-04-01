@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { Container } from '@/src/components/ui/Container';
-import { Typography } from '@/src/components/ui/Typography';
+import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { Spacer } from '@/src/components/ui/Spacer';
-import { theme } from '@/src/styles/theme';
+import { Typography } from '@/src/components/ui/Typography';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
+import { theme } from '@/src/styles/theme';
+import React, { useState } from 'react';
+import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 
 const screenWidth = Dimensions.get('window').width;
@@ -22,8 +23,34 @@ const CHART_COLORS = [
 
 export default function ExploreScreen() {
   const transactions = useExpenseStore((state) => state.transactions);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
 
-  const expensesByCategory = transactions
+  const getFilteredTransactions = () => {
+    const now = new Date();
+    const filtered = transactions.filter((t) => {
+      const transactionDate = new Date(t.date);
+      
+      switch (selectedPeriod) {
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return transactionDate >= weekAgo;
+        case 'month':
+          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+          return transactionDate >= monthAgo;
+        case 'year':
+          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+          return transactionDate >= yearAgo;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+    return filtered;
+  };
+
+  const filteredTransactions = getFilteredTransactions();
+
+  const expensesByCategory = filteredTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, current) => {
       const cat = current.category.charAt(0).toUpperCase() + current.category.slice(1);
@@ -61,6 +88,11 @@ export default function ExploreScreen() {
           <Typography variant="body" color={theme.colors.secondaryText}>
             Distribuição dos seus Gastos
           </Typography>
+          <Spacer size="lg" />
+          <PeriodFilter 
+            selectedPeriod={selectedPeriod}
+            onSelectPeriod={setSelectedPeriod}
+          />
         </Container>
         
         <Spacer size="xl" />
