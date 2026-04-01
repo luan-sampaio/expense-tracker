@@ -1,9 +1,11 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Container } from '@/src/components/ui/Container';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { BalanceHeader } from '@/src/components/dashboard/BalanceHeader';
 import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
+import { BudgetRuleWidget } from '@/src/components/dashboard/BudgetRuleWidget';
 import { Typography } from '@/src/components/ui/Typography';
 import { Button } from '@/src/components/ui/Button';
 import { router } from 'expo-router';
@@ -19,22 +21,23 @@ export default function HomeScreen() {
   );
 
   return (
-    <Container padding={0} backgroundColor={theme.colors.background}>
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        <Spacer size="xxl" />
-        <BalanceHeader />
-        
-        <Container padding="lg" flex={0}>
-          <Button label="+ Nova Transação" onPress={() => router.push('/modal')} />
-        </Container>
-        
-        <Spacer size="lg" />
-        
-        <Container padding="lg" flex={0}>
-          <Typography variant="title" weight="semibold">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Container padding={0} backgroundColor={theme.colors.background}>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          <Spacer size="xxl" />
+          <BalanceHeader />
+          
+          <Container padding="lg" flex={0}>
+            <Button label="+ Nova Transação" onPress={() => router.push('/modal')} />
+            <Spacer size="xl" />
+            <BudgetRuleWidget />
+          </Container>
+          
+          <Container padding="lg" flex={0}>
+            <Typography variant="title" weight="semibold">
             Transações Recentes
           </Typography>
           <Spacer size="lg" />
@@ -54,7 +57,8 @@ export default function HomeScreen() {
           )}
         </Container>
       </ScrollView>
-    </Container>
+      </Container>
+    </GestureHandlerRootView>
   );
 }
 
