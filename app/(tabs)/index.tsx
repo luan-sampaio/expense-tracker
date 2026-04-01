@@ -1,19 +1,22 @@
-import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Container } from '@/src/components/ui/Container';
-import { Spacer } from '@/src/components/ui/Spacer';
 import { BalanceHeader } from '@/src/components/dashboard/BalanceHeader';
-import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
 import { BudgetRuleWidget } from '@/src/components/dashboard/BudgetRuleWidget';
-import { Typography } from '@/src/components/ui/Typography';
+import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
 import { Button } from '@/src/components/ui/Button';
-import { router } from 'expo-router';
-import { theme } from '@/src/styles/theme';
+import { Container } from '@/src/components/ui/Container';
+import { LoadingSpinner } from '@/src/components/ui/LoadingSpinner';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
+import { theme } from '@/src/styles/theme';
+import { router } from 'expo-router';
+import React from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function HomeScreen() {
   const transactions = useExpenseStore((state) => state.transactions);
+  const isLoading = useExpenseStore((state) => state.isLoading);
+  const error = useExpenseStore((state) => state.error);
 
   const sortedTransactions = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -27,6 +30,18 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scrollContent}
         >
           <Spacer size="xxl" />
+          
+          {error && (
+            <Container padding="lg" flex={0}>
+              <View style={styles.errorCard}>
+                <Typography variant="body" color="#FF3B30" align="center">
+                  {error}
+                </Typography>
+              </View>
+              <Spacer size="md" />
+            </Container>
+          )}
+          
           <BalanceHeader />
           
           <Container padding="lg" flex={0}>
@@ -41,7 +56,9 @@ export default function HomeScreen() {
           </Typography>
           <Spacer size="lg" />
           
-          {sortedTransactions.length === 0 ? (
+          {isLoading ? (
+            <LoadingSpinner message="Carregando transações..." />
+          ) : sortedTransactions.length === 0 ? (
             <Container padding="lg" backgroundColor={theme.colors.surface} style={styles.emptyCard}>
               <Typography variant="body" color={theme.colors.secondaryText} align="center">
                 Você ainda não tem gastos ou receitas cadastrados.
@@ -71,5 +88,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: theme.spacing.xxl,
+  },
+  errorCard: {
+    backgroundColor: '#FFEBEE',
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: '#FF3B30',
   }
 });
