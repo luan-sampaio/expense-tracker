@@ -14,6 +14,7 @@ export const useExpenseStore = create<ExpenseState>()(
       addTransaction: (transaction) => {
         const newTransaction: Transaction = {
           ...transaction,
+          amount: Number(transaction.amount),
           id: Date.now().toString(36) + Math.random().toString(36).substring(2, 9),
         };
         set((state) => ({
@@ -55,7 +56,7 @@ export const useExpenseStore = create<ExpenseState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await api.get<Transaction[]>('/transactions/');
-          const normalized = data.map((t) => ({ ...t, amount: Number(t.amount) }));
+          const normalized = data.map((t) => ({ ...t, amount: Number(t.amount) })); // backend retorna Decimal como string
           set({ transactions: normalized, isLoading: false });
         } catch (err) {
           console.error('Sync failed:', err);

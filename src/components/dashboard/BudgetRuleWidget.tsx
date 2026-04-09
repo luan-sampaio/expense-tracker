@@ -41,15 +41,15 @@ function ProgressBar({ label, spent, limit, color }: ProgressBarProps) {
   );
 }
 
+const NEEDS_KEYWORDS = ['food', 'comida', 'mercado', 'housing', 'casa', 'aluguel', 'transport', 'transporte', 'saúde', 'conta', 'luz', 'agua'];
+const SAVINGS_KEYWORDS = ['investimento', 'poupança', 'reserva', 'saving'];
+
 export function BudgetRuleWidget() {
   const transactions = useExpenseStore((state) => state.transactions);
 
   const income = transactions
     .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + Number(t.amount), 0);
-
-  const needsKeywords = ['food', 'comida', 'mercado', 'housing', 'casa', 'aluguel', 'transport', 'transporte', 'saúde', 'conta', 'luz', 'agua'];
-  const savingsKeywords = ['investimento', 'poupança', 'reserva', 'saving'];
+    .reduce((acc, t) => acc + t.amount, 0);
 
   let spentNeeds = 0;
   let spentWants = 0;
@@ -57,9 +57,9 @@ export function BudgetRuleWidget() {
 
   transactions.filter((t) => t.type === 'expense').forEach((t) => {
     const cat = t.category.toLowerCase();
-    const amount = Number(t.amount);
-    const isNeed = needsKeywords.some((k) => cat.includes(k));
-    const isSaving = savingsKeywords.some((k) => cat.includes(k));
+    const amount = t.amount;
+    const isNeed = NEEDS_KEYWORDS.some((k) => cat.includes(k));
+    const isSaving = SAVINGS_KEYWORDS.some((k) => cat.includes(k));
 
     if (isSaving) spentSavings += amount;
     else if (isNeed) spentNeeds += amount;

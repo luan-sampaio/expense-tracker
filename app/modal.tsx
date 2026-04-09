@@ -7,6 +7,7 @@ import { Typography } from '@/src/components/ui/Typography';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { TransactionType } from '@/src/types';
+import { parseAmount, TransactionFormErrors, validateTransactionForm } from '@/src/utils/validation';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
@@ -23,39 +24,17 @@ export default function ModalScreen() {
   const [amount, setAmount] = useState((params.editAmount as string) || '');
   const [description, setDescription] = useState((params.editDescription as string) || '');
   const [category, setCategory] = useState<string>((params.editCategory as string) || 'other');
-  const [errors, setErrors] = useState({ amount: '', description: '' });
-
-  const validateForm = () => {
-    const newErrors = { amount: '', description: '' };
-    let isValid = true;
-
-    if (!amount.trim()) {
-      newErrors.amount = 'Valor é obrigatório';
-      isValid = false;
-    } else {
-      const numericAmount = parseFloat(amount.replace(',', '.'));
-      if (isNaN(numericAmount) || numericAmount <= 0) {
-        newErrors.amount = 'Valor deve ser um número positivo';
-        isValid = false;
-      }
-    }
-
-    if (!description.trim()) {
-      newErrors.description = 'Descrição é obrigatória';
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
+  const [errors, setErrors] = useState<TransactionFormErrors>({ amount: '', description: '' });
 
   const handleSave = () => {
-    if (!validateForm()) {
+    const { errors: newErrors, isValid } = validateTransactionForm({ amount, description });
+    setErrors(newErrors);
+    if (!isValid) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos corretamente.');
       return;
     }
-    
-    const numericAmount = parseFloat(amount.replace(',', '.'));
+
+    const numericAmount = parseAmount(amount);
 
     if (isEditing && editId) {
       updateTransaction(editId, {

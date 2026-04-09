@@ -2,7 +2,7 @@ import { Container } from '@/src/components/ui/Container';
 import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
-import { useExpenseStore } from '@/src/store/useExpenseStore';
+import { useFilteredTransactions } from '@/src/hooks/useFilteredTransactions';
 import { theme } from '@/src/styles/theme';
 import React, { useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
@@ -22,40 +22,15 @@ const CHART_COLORS = [
 ];
 
 export default function ExploreScreen() {
-  const transactions = useExpenseStore((state) => state.transactions);
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
-
-  const getFilteredTransactions = () => {
-    const now = new Date();
-    const filtered = transactions.filter((t) => {
-      const transactionDate = new Date(t.date);
-      
-      switch (selectedPeriod) {
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return transactionDate >= weekAgo;
-        case 'month':
-          const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-          return transactionDate >= monthAgo;
-        case 'year':
-          const yearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
-          return transactionDate >= yearAgo;
-        case 'all':
-        default:
-          return true;
-      }
-    });
-    return filtered;
-  };
-
-  const filteredTransactions = getFilteredTransactions();
+  const filteredTransactions = useFilteredTransactions(selectedPeriod);
 
   const expensesByCategory = filteredTransactions
     .filter(t => t.type === 'expense')
     .reduce((acc, current) => {
       const cat = current.category.charAt(0).toUpperCase() + current.category.slice(1);
       if (!acc[cat]) acc[cat] = 0;
-      acc[cat] += Number(current.amount);
+      acc[cat] += current.amount;
       return acc;
     }, {} as Record<string, number>);
 
@@ -83,10 +58,10 @@ export default function ExploreScreen() {
         <Spacer size="xxl" />
         <Container padding="lg" flex={0}>
           <Typography variant="heading" weight="bold">
-            Analytics
+            Visão Geral
           </Typography>
           <Typography variant="body" color={theme.colors.secondaryText}>
-            Distribuição dos seus Gastos
+            Distribuição dos seus gastos
           </Typography>
           <Spacer size="lg" />
           <PeriodFilter 

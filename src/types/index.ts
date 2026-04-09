@@ -12,7 +12,7 @@ export interface Transaction {
   id: string;
   amount: number;
   date: string; // ISO 8601 string
-  category: Category | string;
+  category: string;
   type: TransactionType;
   description: string;
 }
