@@ -1,39 +1,8 @@
-import { PendingMutation, Transaction } from '../types';
-
-type PendingMutationInput =
-  | {
-      type: 'create';
-      transaction: Transaction;
-    }
-  | {
-      type: 'update';
-      transaction: Transaction;
-    }
-  | {
-      type: 'delete';
-      transactionId: string;
-    };
-
-export function createClientId() {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-}
-
-export function normalizeTransaction(transaction: Transaction): Transaction {
-  return { ...transaction, amount: Number(transaction.amount) };
-}
-
-export function createPendingMutation(mutation: PendingMutationInput): PendingMutation {
-  return {
-    ...mutation,
-    id: createClientId(),
-    createdAt: new Date().toISOString(),
-  };
-}
+import { getPendingTransactionId } from '@/src/domain/transactions';
+import { PendingMutation, Transaction } from '@/src/types';
 
 function getMutationTransactionId(mutation: PendingMutation) {
-  return mutation.type === 'delete'
-    ? mutation.transactionId
-    : mutation.transaction.id;
+  return getPendingTransactionId(mutation);
 }
 
 export function compactQueue(queue: PendingMutation[], next: PendingMutation) {

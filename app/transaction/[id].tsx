@@ -3,6 +3,7 @@ import { Container } from '@/src/components/ui/Container';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
+import { getPendingTransactionId } from '@/src/domain/transactions';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { PendingMutation, Transaction } from '@/src/types';
@@ -11,12 +12,7 @@ import { warningFeedback } from '@/src/utils/haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-
-function getPendingTransactionId(mutation: PendingMutation) {
-  return mutation.type === 'delete'
-    ? mutation.transactionId
-    : mutation.transaction.id;
-}
+import { useShallow } from 'zustand/react/shallow';
 
 function getSyncLabel(transaction: Transaction, pendingMutations: PendingMutation[]) {
   const pending = pendingMutations.find((mutation) => {
@@ -70,9 +66,13 @@ function DetailRow({
 
 export default function TransactionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const transactions = useExpenseStore((state) => state.transactions);
-  const pendingMutations = useExpenseStore((state) => state.pendingMutations);
-  const removeTransaction = useExpenseStore((state) => state.removeTransaction);
+  const { transactions, pendingMutations, removeTransaction } = useExpenseStore(
+    useShallow((state) => ({
+      transactions: state.transactions,
+      pendingMutations: state.pendingMutations,
+      removeTransaction: state.removeTransaction,
+    }))
+  );
   const transaction = transactions.find((item) => item.id === id);
 
   if (!transaction) {

@@ -2,26 +2,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
+  createPendingMutation,
+  createTransaction,
+  normalizeTransaction,
+} from '@/src/domain/transactions';
+import { getUserFacingError } from '@/src/services/errorMessages';
+import {
   applyPendingMutations,
   compactQueue,
-  createClientId,
-  createPendingMutation,
-  normalizeTransaction,
   removeAppliedMutations,
-} from '../services/syncQueue';
-import { transactionsApi } from '../services/transactionsApi';
-import { ExpenseState, Transaction } from '../types';
-import { successFeedback } from '../utils/haptics';
+} from '@/src/services/syncQueue';
+import { transactionsApi } from '@/src/services/transactionsApi';
+import { ExpenseState } from '@/src/types';
+import { successFeedback } from '@/src/utils/haptics';
 
 let isFlushingQueue = false;
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return 'Erro desconhecido ao sincronizar.';
-}
 
 export const useExpenseStore = create<ExpenseState>()(
   persist(
@@ -34,11 +29,7 @@ export const useExpenseStore = create<ExpenseState>()(
       syncStatus: 'synced',
 
       addTransaction: (transaction) => {
-        const newTransaction: Transaction = {
-          ...transaction,
-          amount: Number(transaction.amount),
-          id: createClientId(),
-        };
+        const newTransaction = createTransaction(transaction);
         const pendingMutation = createPendingMutation({
           type: 'create',
           transaction: newTransaction,
@@ -162,7 +153,7 @@ export const useExpenseStore = create<ExpenseState>()(
           const hasPendingMutations = get().pendingMutations.length > 0;
           const errorMessage = hasPendingMutations
             ? 'Modo offline: suas alterações foram salvas neste aparelho e serão sincronizadas automaticamente.'
-            : getErrorMessage(err);
+            : getUserFacingError(err);
 
           set({
             isLoading: false,
@@ -177,6 +168,24 @@ export const useExpenseStore = create<ExpenseState>()(
     {
       name: 'expense-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 1,
+      migrate: (persistedState) => {
+        if (!persistedState || typeof persistedState !== 'object') {
+          return persistedState;
+        }
+
+        const state = persistedState as Partial<ExpenseState>;
+
+        return {
+          ...state,
+          transactions: state.transactions?.map(normalizeTransaction) ?? [],
+          pendingMutations: state.pendingMutations ?? [],
+          isLoading: false,
+          error: null,
+          lastSyncAt: state.lastSyncAt ?? null,
+          syncStatus: state.syncStatus ?? 'synced',
+        };
+      },
     }
   )
 );

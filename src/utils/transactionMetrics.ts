@@ -1,5 +1,10 @@
-import { getCategoryMeta } from '../constants/categories';
-import { Transaction } from '../types';
+import { getCategoryMeta } from '@/src/constants/categories';
+import {
+  calculateBalance,
+  groupExpensesByCategory,
+  sumTransactionsByType,
+} from '@/src/domain/transactions';
+import { Transaction } from '@/src/types';
 
 function isSameMonth(date: string, reference: Date) {
   const transactionDate = new Date(date);
@@ -19,15 +24,9 @@ function summarizeMonth(transactions: Transaction[], reference: Date) {
     isSameMonth(transaction.date, reference)
   );
 
-  const income = monthTransactions
-    .filter((transaction) => transaction.type === 'income')
-    .reduce((total, transaction) => total + transaction.amount, 0);
-
-  const expenses = monthTransactions
-    .filter((transaction) => transaction.type === 'expense')
-    .reduce((total, transaction) => total + transaction.amount, 0);
-
-  const balance = income - expenses;
+  const income = sumTransactionsByType(monthTransactions, 'income');
+  const expenses = sumTransactionsByType(monthTransactions, 'expense');
+  const balance = calculateBalance(monthTransactions);
 
   return {
     balance,
@@ -44,12 +43,7 @@ function getTopExpense(transactions: Transaction[]) {
 }
 
 function getTopExpenseCategory(transactions: Transaction[]) {
-  const totals = transactions
-    .filter((transaction) => transaction.type === 'expense')
-    .reduce((acc, transaction) => {
-      acc[transaction.category] = (acc[transaction.category] ?? 0) + transaction.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const totals = groupExpensesByCategory(transactions);
 
   const [categoryId, amount] = Object.entries(totals)
     .sort(([, a], [, b]) => b - a)[0] ?? [];
@@ -92,4 +86,3 @@ export function getDashboardMetrics(transactions: Transaction[], reference = new
     previousMonth,
   };
 }
-

@@ -2,15 +2,15 @@ import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { formatCurrency, formatMonthLabel } from '@/src/utils/formatters';
 import { getDashboardMetrics } from '@/src/utils/transactionMetrics';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Spacer } from '../ui/Spacer';
-import { Typography } from '../ui/Typography';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 
 export function BalanceHeader() {
   const transactions = useExpenseStore((state) => state.transactions);
-  const metrics = getDashboardMetrics(transactions);
-  const monthLabel = formatMonthLabel(new Date());
+  const metrics = useMemo(() => getDashboardMetrics(transactions), [transactions]);
+  const monthLabel = useMemo(() => formatMonthLabel(new Date()), []);
   const topExpenseLabel = metrics.topExpense
     ? `${metrics.topExpense.description} · ${formatCurrency(metrics.topExpense.amount)}`
     : 'Nenhuma despesa no mês';

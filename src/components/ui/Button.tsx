@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     TouchableOpacityProps,
 } from 'react-native';
-import { Typography } from './Typography';
+import { Typography } from '@/src/components/ui/Typography';
 
 interface ButtonProps extends TouchableOpacityProps {
   label: string;

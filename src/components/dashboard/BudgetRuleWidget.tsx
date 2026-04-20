@@ -1,10 +1,11 @@
+import { sumTransactionsByType } from '@/src/domain/transactions';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { formatCurrency } from '@/src/utils/formatters';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Spacer } from '../ui/Spacer';
-import { Typography } from '../ui/Typography';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 
 interface ProgressBarProps {
   label: string;
@@ -48,30 +49,35 @@ const SAVINGS_KEYWORDS = ['investimento', 'poupança', 'reserva', 'saving'];
 export function BudgetRuleWidget() {
   const transactions = useExpenseStore((state) => state.transactions);
 
-  const income = transactions
-    .filter((t) => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
+  const budget = useMemo(() => {
+    const income = sumTransactionsByType(transactions, 'income');
+    let spentNeeds = 0;
+    let spentWants = 0;
+    let spentSavings = 0;
 
-  let spentNeeds = 0;
-  let spentWants = 0;
-  let spentSavings = 0;
+    transactions.filter((t) => t.type === 'expense').forEach((t) => {
+      const cat = t.category.toLowerCase();
+      const amount = t.amount;
+      const isNeed = NEEDS_KEYWORDS.some((k) => cat.includes(k));
+      const isSaving = SAVINGS_KEYWORDS.some((k) => cat.includes(k));
 
-  transactions.filter((t) => t.type === 'expense').forEach((t) => {
-    const cat = t.category.toLowerCase();
-    const amount = t.amount;
-    const isNeed = NEEDS_KEYWORDS.some((k) => cat.includes(k));
-    const isSaving = SAVINGS_KEYWORDS.some((k) => cat.includes(k));
+      if (isSaving) spentSavings += amount;
+      else if (isNeed) spentNeeds += amount;
+      else spentWants += amount;
+    });
 
-    if (isSaving) spentSavings += amount;
-    else if (isNeed) spentNeeds += amount;
-    else spentWants += amount;
-  });
+    return {
+      income,
+      spentNeeds,
+      spentWants,
+      spentSavings,
+      limitNeeds: income * 0.5,
+      limitWants: income * 0.3,
+      limitSavings: income * 0.2,
+    };
+  }, [transactions]);
 
-  const limitNeeds = income * 0.5;
-  const limitWants = income * 0.3;
-  const limitSavings = income * 0.2;
-
-  if (income === 0) return null;
+  if (budget.income === 0) return null;
 
   return (
     <View style={styles.container}>
@@ -83,11 +89,11 @@ export function BudgetRuleWidget() {
       </Typography>
       <Spacer size="md" />
       
-      <ProgressBar label="Essenciais (50%)" spent={spentNeeds} limit={limitNeeds} color={theme.colors.info} />
+      <ProgressBar label="Essenciais (50%)" spent={budget.spentNeeds} limit={budget.limitNeeds} color={theme.colors.info} />
       <Spacer size="sm" />
-      <ProgressBar label="Desejos/Livres (30%)" spent={spentWants} limit={limitWants} color={theme.colors.accent} />
+      <ProgressBar label="Desejos/Livres (30%)" spent={budget.spentWants} limit={budget.limitWants} color={theme.colors.accent} />
       <Spacer size="sm" />
-      <ProgressBar label="Poupança/Acúmulo (20%)" spent={spentSavings} limit={limitSavings} color={theme.colors.income} />
+      <ProgressBar label="Poupança/Acúmulo (20%)" spent={budget.spentSavings} limit={budget.limitSavings} color={theme.colors.income} />
     </View>
   );
 }

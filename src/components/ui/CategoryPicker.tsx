@@ -4,7 +4,7 @@ import { TransactionType } from '@/src/types';
 import { impactFeedback } from '@/src/utils/haptics';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Typography } from './Typography';
+import { Typography } from '@/src/components/ui/Typography';
 
 interface CategoryPickerProps {
   selectedCategory: string;

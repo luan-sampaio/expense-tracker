@@ -8,8 +8,8 @@ import { router } from 'expo-router';
 import React from 'react';
 import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
-import { Spacer } from '../ui/Spacer';
-import { Typography } from '../ui/Typography';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 
 interface Props {
   transaction: Transaction;

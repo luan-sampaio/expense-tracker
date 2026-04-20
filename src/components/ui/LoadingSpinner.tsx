@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
-import { Typography } from './Typography';
+import { Typography } from '@/src/components/ui/Typography';
 import { theme } from '@/src/styles/theme';
 
 interface LoadingSpinnerProps {

@@ -3,10 +3,11 @@ import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
+import { groupExpensesByCategory } from '@/src/domain/transactions';
 import { useFilteredTransactions } from '@/src/hooks/useFilteredTransactions';
 import { theme } from '@/src/styles/theme';
 import { formatCurrency } from '@/src/utils/formatters';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { PieChart } from 'react-native-chart-kit';
 
@@ -16,28 +17,29 @@ export default function ExploreScreen() {
   const chartWidth = Math.max(width - theme.spacing.lg * 2, 280);
   const filteredTransactions = useFilteredTransactions(selectedPeriod);
 
-  const expensesByCategory = filteredTransactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, current) => {
-      const cat = current.category;
-      if (!acc[cat]) acc[cat] = 0;
-      acc[cat] += current.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const expensesByCategory = useMemo(
+    () => groupExpensesByCategory(filteredTransactions),
+    [filteredTransactions]
+  );
 
-  const chartData = Object.keys(expensesByCategory).map((categoryName) => {
-    const categoryMeta = getCategoryMeta(categoryName);
+  const chartData = useMemo(() => {
+    return Object.keys(expensesByCategory).map((categoryName) => {
+      const categoryMeta = getCategoryMeta(categoryName);
 
-    return {
-      name: categoryMeta.label,
-      population: expensesByCategory[categoryName],
-      color: categoryMeta.color,
-      legendFontColor: theme.colors.primaryText,
-      legendFontSize: 14,
-    };
-  }).sort((a, b) => b.population - a.population);
+      return {
+        name: categoryMeta.label,
+        population: expensesByCategory[categoryName],
+        color: categoryMeta.color,
+        legendFontColor: theme.colors.primaryText,
+        legendFontSize: 14,
+      };
+    }).sort((a, b) => b.population - a.population);
+  }, [expensesByCategory]);
 
-  const totalExpenses = Object.values(expensesByCategory).reduce((a, b) => a + b, 0);
+  const totalExpenses = useMemo(
+    () => Object.values(expensesByCategory).reduce((a, b) => a + b, 0),
+    [expensesByCategory]
+  );
 
   const chartConfig = {
     backgroundGradientFrom: theme.colors.background,

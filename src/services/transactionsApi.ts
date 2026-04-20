@@ -1,10 +1,10 @@
-import { api } from '../lib/api';
-import { PendingMutation, Transaction } from '../types';
+import { api } from '@/src/lib/api';
+import { PendingMutation, Transaction } from '@/src/types';
 import {
   TRANSACTIONS_ENDPOINT,
   TRANSACTIONS_SYNC_ENDPOINT,
   transactionEndpoint,
-} from './endpoints';
+} from '@/src/services/endpoints';
 
 type TransactionSyncOperation = {
   operation: 'add' | 'update' | 'remove';

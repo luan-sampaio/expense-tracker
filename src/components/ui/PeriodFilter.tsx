@@ -2,7 +2,7 @@ import { impactFeedback } from '@/src/utils/haptics';
 import { theme } from '@/src/styles/theme';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Typography } from './Typography';
+import { Typography } from '@/src/components/ui/Typography';
 
 export type Period = 'week' | 'month' | 'year' | 'all';
 

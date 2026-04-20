@@ -9,13 +9,18 @@ import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
+import {
+  filterTransactions,
+  getTransactionCategoryIds,
+} from '@/src/domain/transactions';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
-import { TransactionType } from '@/src/types';
+import { Transaction, TransactionType } from '@/src/types';
 import { impactFeedback } from '@/src/utils/haptics';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, ListRenderItem, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 type TypeFilter = 'all' | TransactionType;
 type CategoryFilter = 'all' | string;
@@ -37,40 +42,30 @@ function formatLastSyncAt(lastSyncAt: string | null) {
   })}`;
 }
 
-function isWithinPeriod(date: string, period: Period) {
-  if (period === 'all') return true;
-
-  const transactionDate = new Date(date);
-  const today = new Date();
-
-  if (period === 'week') {
-    const weekAgo = new Date(today);
-    weekAgo.setDate(today.getDate() - 7);
-    return transactionDate >= weekAgo;
-  }
-
-  if (period === 'month') {
-    return (
-      transactionDate.getMonth() === today.getMonth() &&
-      transactionDate.getFullYear() === today.getFullYear()
-    );
-  }
-
-  return transactionDate.getFullYear() === today.getFullYear();
-}
-
 export default function HomeScreen() {
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('all');
   const [selectedType, setSelectedType] = useState<TypeFilter>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const transactions = useExpenseStore((state) => state.transactions);
-  const isLoading = useExpenseStore((state) => state.isLoading);
-  const error = useExpenseStore((state) => state.error);
-  const pendingMutations = useExpenseStore((state) => state.pendingMutations);
-  const syncStatus = useExpenseStore((state) => state.syncStatus);
-  const lastSyncAt = useExpenseStore((state) => state.lastSyncAt);
-  const syncAll = useExpenseStore((state) => state.syncAll);
+  const {
+    transactions,
+    isLoading,
+    error,
+    pendingMutations,
+    syncStatus,
+    lastSyncAt,
+    syncAll,
+  } = useExpenseStore(
+    useShallow((state) => ({
+      transactions: state.transactions,
+      isLoading: state.isLoading,
+      error: state.error,
+      pendingMutations: state.pendingMutations,
+      syncStatus: state.syncStatus,
+      lastSyncAt: state.lastSyncAt,
+      syncAll: state.syncAll,
+    }))
+  );
   const pendingCount = pendingMutations.length;
   const statusConfig = {
     online: {
@@ -100,23 +95,16 @@ export default function HomeScreen() {
   }[syncStatus];
 
   const categoryFilters = useMemo(() => {
-    const categories = Array.from(new Set(transactions.map((item) => item.category)));
-    return categories.sort((a, b) => a.localeCompare(b));
+    return getTransactionCategoryIds(transactions);
   }, [transactions]);
 
   const filteredTransactions = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return transactions
-      .filter((transaction) => isWithinPeriod(transaction.date, selectedPeriod))
-      .filter((transaction) => selectedType === 'all' || transaction.type === selectedType)
-      .filter((transaction) => selectedCategory === 'all' || transaction.category === selectedCategory)
-      .filter((transaction) => {
-        if (!normalizedQuery) return true;
-
-        return transaction.description.toLowerCase().includes(normalizedQuery);
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return filterTransactions(transactions, {
+      period: selectedPeriod,
+      type: selectedType,
+      category: selectedCategory,
+      search: searchQuery,
+    });
   }, [transactions, searchQuery, selectedCategory, selectedPeriod, selectedType]);
 
   const hasActiveFilters =
@@ -133,90 +121,92 @@ export default function HomeScreen() {
     setSearchQuery('');
   };
 
-  return (
-    <Container padding={0} backgroundColor={theme.colors.background}>
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+  const renderTransaction: ListRenderItem<Transaction> = ({ item }) => (
+    <View style={styles.section}>
+      <TransactionItem transaction={item} />
+    </View>
+  );
+
+  const listHeader = (
+    <>
+      <Spacer size="xxl" />
+
+      {error && (
+        <View style={styles.section}>
+          <View style={styles.errorCard}>
+            <Typography variant="body" color={theme.colors.expense} align="center">
+              {error}
+            </Typography>
+          </View>
+          <Spacer size="md" />
+        </View>
+      )}
+
+      <View style={styles.section}>
+        <View
+          style={[
+            styles.syncCard,
+            {
+              backgroundColor: statusConfig.background,
+              borderColor: statusConfig.border,
+            },
+          ]}
         >
-          <Spacer size="xxl" />
-
-          {error && (
-            <Container padding="lg" flex={0}>
-              <View style={styles.errorCard}>
-                <Typography variant="body" color={theme.colors.expense} align="center">
-                  {error}
-                </Typography>
-              </View>
-              <Spacer size="md" />
-            </Container>
-          )}
-
-          <Container padding="lg" flex={0}>
-            <View
-              style={[
-                styles.syncCard,
-                {
-                  backgroundColor: statusConfig.background,
-                  borderColor: statusConfig.border,
-                },
-              ]}
-            >
-              <View style={styles.syncHeader}>
-                <Typography variant="body" weight="semibold" color={statusConfig.color}>
-                  {statusConfig.label}
-                </Typography>
-                {pendingCount > 0 && (
-                  <Typography variant="caption" color={theme.colors.secondaryText}>
-                    {pendingCount === 1
-                      ? '1 alteração pendente'
-                      : `${pendingCount} alterações pendentes`}
-                  </Typography>
-                )}
-              </View>
-
+          <View style={styles.syncHeader}>
+            <Typography variant="body" weight="semibold" color={statusConfig.color}>
+              {statusConfig.label}
+            </Typography>
+            {pendingCount > 0 && (
               <Typography variant="caption" color={theme.colors.secondaryText}>
-                {formatLastSyncAt(lastSyncAt)}
+                {pendingCount === 1
+                  ? '1 alteração pendente'
+                  : `${pendingCount} alterações pendentes`}
+              </Typography>
+            )}
+          </View>
+
+          <Typography variant="caption" color={theme.colors.secondaryText}>
+            {formatLastSyncAt(lastSyncAt)}
+          </Typography>
+
+          {pendingCount > 0 && (
+            <>
+              <Typography variant="caption" color={theme.colors.secondaryText}>
+                {pendingCount === 1
+                  ? 'A alteração será reenviada automaticamente quando o servidor responder.'
+                  : `${pendingCount} alterações aguardando sincronização`}
               </Typography>
 
-              {pendingCount > 0 && (
-                <>
-                  <Typography variant="caption" color={theme.colors.secondaryText}>
-                    {pendingCount === 1
-                      ? 'A alteração será reenviada automaticamente quando o servidor responder.'
-                      : `${pendingCount} alterações aguardando sincronização`}
-                  </Typography>
+              <View style={styles.syncActions}>
+                <Button
+                  label="Tentar agora"
+                  variant="secondary"
+                  onPress={() => {
+                    impactFeedback();
+                    syncAll();
+                  }}
+                  style={styles.retryButton}
+                />
+              </View>
+            </>
+          )}
+        </View>
+        <Spacer size="md" />
+      </View>
 
-                  <View style={styles.syncActions}>
-                    <Button
-                      label="Tentar agora"
-                      variant="secondary"
-                      onPress={() => {
-                        impactFeedback();
-                        syncAll();
-                      }}
-                      style={styles.retryButton}
-                    />
-                  </View>
-                </>
-              )}
-            </View>
-            <Spacer size="md" />
-          </Container>
+      <BalanceHeader />
 
-          <BalanceHeader />
-          
-          <Container padding="lg" flex={0}>
-            <Button label="+ Nova Transação" onPress={() => router.push('/modal')} />
-            <Spacer size="xl" />
-            <BudgetRuleWidget />
-          </Container>
-          
-          <Container padding="lg" flex={0}>
-            <Typography variant="title" weight="semibold">
-              Transações Recentes
-            </Typography>
-            <Spacer size="lg" />
+      <View style={styles.section}>
+        <Button label="+ Nova Transação" onPress={() => router.push('/modal')} />
+        <Spacer size="xl" />
+        <BudgetRuleWidget />
+      </View>
+
+      <View style={styles.section}>
+        <Typography variant="title" weight="semibold">
+          Transações Recentes
+        </Typography>
+        <Spacer size="lg" />
 
             <Input
               placeholder="Buscar por descrição"
@@ -338,49 +328,61 @@ export default function HomeScreen() {
               </>
             )}
             <Spacer size="lg" />
-          
-          {isLoading ? (
-            <LoadingSpinner message="Sincronizando..." />
-          ) : filteredTransactions.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Typography variant="hero" align="center" style={styles.emptyIcon}>
-                {hasActiveFilters ? '🔎' : '💸'}
-              </Typography>
-              <Spacer size="sm" />
-              <Typography variant="body" weight="semibold" color={theme.colors.primaryText} align="center">
-                {hasActiveFilters ? 'Nada encontrado' : 'Comece pelo primeiro lançamento'}
-              </Typography>
-              <Spacer size="xs" />
-              <Typography variant="body" color={theme.colors.secondaryText} align="center">
-                {hasActiveFilters
-                  ? 'Tente ajustar a busca, período, tipo ou categoria para encontrar uma transação.'
-                  : 'Adicione uma receita ou despesa para acompanhar seu saldo e seus gastos.'}
-              </Typography>
-              <Spacer size="lg" />
-              <Button
-                label={hasActiveFilters ? 'Limpar filtros' : 'Adicionar primeira transação'}
-                variant={hasActiveFilters ? 'secondary' : 'primary'}
-                onPress={hasActiveFilters ? clearFilters : () => router.push('/modal')}
-                style={styles.emptyButton}
-              />
-            </View>
-          ) : (
-            <View>
-              {filteredTransactions.map((transaction) => (
-                <TransactionItem key={transaction.id} transaction={transaction} />
-              ))}
-            </View>
-          )}
-        </Container>
-      </ScrollView>
+      </View>
+    </>
+  );
+
+  const listEmpty = isLoading ? (
+    <View style={styles.section}>
+      <LoadingSpinner message="Sincronizando..." />
+    </View>
+  ) : (
+    <View style={[styles.section, styles.emptyCard]}>
+      <Typography variant="hero" align="center" style={styles.emptyIcon}>
+        {hasActiveFilters ? '🔎' : '💸'}
+      </Typography>
+      <Spacer size="sm" />
+      <Typography variant="body" weight="semibold" color={theme.colors.primaryText} align="center">
+        {hasActiveFilters ? 'Nada encontrado' : 'Comece pelo primeiro lançamento'}
+      </Typography>
+      <Spacer size="xs" />
+      <Typography variant="body" color={theme.colors.secondaryText} align="center">
+        {hasActiveFilters
+          ? 'Tente ajustar a busca, período, tipo ou categoria para encontrar uma transação.'
+          : 'Adicione uma receita ou despesa para acompanhar seu saldo e seus gastos.'}
+      </Typography>
+      <Spacer size="lg" />
+      <Button
+        label={hasActiveFilters ? 'Limpar filtros' : 'Adicionar primeira transação'}
+        variant={hasActiveFilters ? 'secondary' : 'primary'}
+        onPress={hasActiveFilters ? clearFilters : () => router.push('/modal')}
+        style={styles.emptyButton}
+      />
+    </View>
+  );
+
+  return (
+    <Container padding={0} backgroundColor={theme.colors.background}>
+      <FlatList
+        data={isLoading ? [] : filteredTransactions}
+        keyExtractor={(item) => item.id}
+        renderItem={renderTransaction}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      />
     </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContent: {
-    flexGrow: 1,
+  listContent: {
     paddingBottom: theme.spacing.xxl,
+  },
+  section: {
+    paddingHorizontal: theme.spacing.lg,
   },
   emptyCard: {
     backgroundColor: theme.colors.surface,

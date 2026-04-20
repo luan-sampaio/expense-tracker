@@ -1,8 +1,8 @@
 import { theme } from '@/src/styles/theme';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
-import { Spacer } from './Spacer';
-import { Typography } from './Typography';
+import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 
 interface InputProps extends TextInputProps {
   label?: string;

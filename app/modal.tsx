@@ -14,6 +14,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Alert, Platform, StyleSheet, ToastAndroid, TouchableOpacity, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 function formatDateLabel(date: Date) {
   return date.toLocaleDateString('pt-BR', {
@@ -34,8 +35,12 @@ function createDateFromInput(value: string) {
 
 export default function ModalScreen() {
   const params = useLocalSearchParams();
-  const addTransaction = useExpenseStore((state) => state.addTransaction);
-  const updateTransaction = useExpenseStore((state) => state.updateTransaction);
+  const { addTransaction, updateTransaction } = useExpenseStore(
+    useShallow((state) => ({
+      addTransaction: state.addTransaction,
+      updateTransaction: state.updateTransaction,
+    }))
+  );
   
   const isEditing = !!params.editId;
   const editId = params.editId as string | undefined;
