@@ -44,6 +44,13 @@ export function TransactionItem({ transaction }: Props) {
     });
   };
 
+  const handleOpenDetails = () => {
+    router.push({
+      pathname: '/transaction/[id]',
+      params: { id: transaction.id },
+    });
+  };
+
   const renderLeftActions = () => {
     return (
       <TouchableOpacity 
@@ -80,7 +87,11 @@ export function TransactionItem({ transaction }: Props) {
       overshootRight={false}
       containerStyle={styles.swipeableContainer}
     >
-      <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.container}
+        onPress={handleOpenDetails}
+        activeOpacity={0.85}
+      >
         <View style={styles.leftContent}>
           <View style={[
             styles.iconPlaceholder, 
@@ -109,7 +120,7 @@ export function TransactionItem({ transaction }: Props) {
         >
           {isIncome ? '+' : '-'}{formattedAmount}
         </Typography>
-      </View>
+      </TouchableOpacity>
     </Swipeable>
   );
 }

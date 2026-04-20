@@ -41,6 +41,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Nova Transação' }} />
+          <Stack.Screen name="transaction/[id]" options={{ title: 'Detalhes' }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

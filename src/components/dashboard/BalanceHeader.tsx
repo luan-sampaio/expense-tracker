@@ -1,6 +1,7 @@
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
-import { formatCurrency } from '@/src/utils/formatters';
+import { formatCurrency, formatMonthLabel } from '@/src/utils/formatters';
+import { getDashboardMetrics } from '@/src/utils/transactionMetrics';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Spacer } from '../ui/Spacer';
@@ -8,48 +9,74 @@ import { Typography } from '../ui/Typography';
 
 export function BalanceHeader() {
   const transactions = useExpenseStore((state) => state.transactions);
-  
-  const balance = transactions.reduce((acc, curr) => {
-    return curr.type === 'income' ? acc + curr.amount : acc - curr.amount;
-  }, 0);
-
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((acc, t) => acc + t.amount, 0);
-
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => acc + t.amount, 0);
+  const metrics = getDashboardMetrics(transactions);
+  const monthLabel = formatMonthLabel(new Date());
+  const topExpenseLabel = metrics.topExpense
+    ? `${metrics.topExpense.description} · ${formatCurrency(metrics.topExpense.amount)}`
+    : 'Nenhuma despesa no mês';
+  const topCategoryLabel = metrics.topExpenseCategory
+    ? `${metrics.topExpenseCategory.category.icon} ${metrics.topExpenseCategory.category.label} · ${formatCurrency(metrics.topExpenseCategory.amount)}`
+    : 'Nenhuma categoria ainda';
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
-          Saldo Total
+          Saldo do mês
         </Typography>
         <Spacer size="xs" />
         <Typography variant="hero" weight="bold" color={theme.colors.primaryText}>
-          {formatCurrency(balance)}
+          {formatCurrency(metrics.balance)}
+        </Typography>
+        <Typography variant="caption" color={theme.colors.secondaryText}>
+          {monthLabel}
         </Typography>
         <Spacer size="lg" />
         <View style={styles.row}>
           <View style={styles.miniCard}>
             <View style={[styles.dot, { backgroundColor: theme.colors.income }]} />
             <View>
-              <Typography variant="caption" color={theme.colors.secondaryText}>Receitas</Typography>
+              <Typography variant="caption" color={theme.colors.secondaryText}>Receitas do mês</Typography>
               <Typography variant="body" weight="semibold" color={theme.colors.income}>
-                {formatCurrency(totalIncome)}
+                {formatCurrency(metrics.income)}
               </Typography>
             </View>
           </View>
           <View style={styles.miniCard}>
             <View style={[styles.dot, { backgroundColor: theme.colors.expense }]} />
             <View>
-              <Typography variant="caption" color={theme.colors.secondaryText}>Despesas</Typography>
+              <Typography variant="caption" color={theme.colors.secondaryText}>Despesas do mês</Typography>
               <Typography variant="body" weight="semibold" color={theme.colors.expense}>
-                {formatCurrency(totalExpense)}
+                {formatCurrency(metrics.expenses)}
               </Typography>
             </View>
+          </View>
+        </View>
+        <Spacer size="lg" />
+        <View style={styles.insightsGrid}>
+          <View style={styles.insight}>
+            <Typography variant="caption" color={theme.colors.secondaryText}>
+              Maior gasto
+            </Typography>
+            <Typography variant="body" weight="semibold">
+              {topExpenseLabel}
+            </Typography>
+          </View>
+          <View style={styles.insight}>
+            <Typography variant="caption" color={theme.colors.secondaryText}>
+              Categoria destaque
+            </Typography>
+            <Typography variant="body" weight="semibold">
+              {topCategoryLabel}
+            </Typography>
+          </View>
+          <View style={styles.insightWide}>
+            <Typography variant="caption" color={theme.colors.secondaryText}>
+              Comparação mensal
+            </Typography>
+            <Typography variant="body" weight="semibold" color={theme.colors.info}>
+              {metrics.expenseComparison}
+            </Typography>
           </View>
         </View>
       </View>
@@ -72,10 +99,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     width: '100%',
+    gap: theme.spacing.md,
   },
   miniCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
@@ -84,5 +113,21 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  insightsGrid: {
+    width: '100%',
+    gap: theme.spacing.sm,
+  },
+  insight: {
+    backgroundColor: theme.colors.surfaceSecondary,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
+  },
+  insightWide: {
+    backgroundColor: theme.colors.infoBackground,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    gap: theme.spacing.xs,
   },
 });
