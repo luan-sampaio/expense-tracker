@@ -10,15 +10,71 @@ import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+
+function formatLastSyncAt(lastSyncAt: string | null) {
+  if (!lastSyncAt) return 'Ainda não sincronizado';
+
+  return `Última sincronização: ${new Date(lastSyncAt).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}`;
+}
 
 export default function HomeScreen() {
   const transactions = useExpenseStore((state) => state.transactions);
   const isLoading = useExpenseStore((state) => state.isLoading);
   const error = useExpenseStore((state) => state.error);
   const pendingMutations = useExpenseStore((state) => state.pendingMutations);
+  const syncStatus = useExpenseStore((state) => state.syncStatus);
+  const lastSyncAt = useExpenseStore((state) => state.lastSyncAt);
   const syncAll = useExpenseStore((state) => state.syncAll);
+  const discardPendingMutations = useExpenseStore((state) => state.discardPendingMutations);
   const pendingCount = pendingMutations.length;
+  const failedMutation = pendingMutations.find((mutation) => mutation.lastError);
+  const statusConfig = {
+    online: {
+      label: 'Online',
+      color: theme.colors.info,
+      background: theme.colors.infoBackground,
+      border: theme.colors.info,
+    },
+    offline: {
+      label: 'Offline',
+      color: theme.colors.expense,
+      background: theme.colors.expenseBackground,
+      border: theme.colors.expenseBorder,
+    },
+    syncing: {
+      label: 'Sincronizando',
+      color: theme.colors.warning,
+      background: theme.colors.accentBackground,
+      border: theme.colors.accent,
+    },
+    synced: {
+      label: 'Tudo salvo',
+      color: theme.colors.success,
+      background: theme.colors.incomeBackground,
+      border: theme.colors.incomeBorder,
+    },
+  }[syncStatus];
+
+  const confirmDiscardPendingMutations = () => {
+    Alert.alert(
+      'Descartar fila pendente?',
+      'As alterações que ainda não chegaram ao servidor serão perdidas. O app vai recarregar os dados do backend em seguida.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Descartar',
+          style: 'destructive',
+          onPress: discardPendingMutations,
+        },
+      ]
+    );
+  };
 
   const sortedTransactions = [...transactions].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -43,29 +99,66 @@ export default function HomeScreen() {
             </Container>
           )}
 
-          {pendingCount > 0 && (
-            <Container padding="lg" flex={0}>
-              <View style={styles.pendingCard}>
-                <View style={styles.pendingText}>
-                  <Typography variant="body" weight="semibold" color={theme.colors.warning}>
+          <Container padding="lg" flex={0}>
+            <View
+              style={[
+                styles.syncCard,
+                {
+                  backgroundColor: statusConfig.background,
+                  borderColor: statusConfig.border,
+                },
+              ]}
+            >
+              <View style={styles.syncHeader}>
+                <Typography variant="body" weight="semibold" color={statusConfig.color}>
+                  {statusConfig.label}
+                </Typography>
+                {pendingCount > 0 && (
+                  <Typography variant="caption" color={theme.colors.secondaryText}>
                     {pendingCount === 1
-                      ? '1 alteração aguardando sincronização'
+                      ? '1 alteração pendente'
+                      : `${pendingCount} alterações pendentes`}
+                  </Typography>
+                )}
+              </View>
+
+              <Typography variant="caption" color={theme.colors.secondaryText}>
+                {formatLastSyncAt(lastSyncAt)}
+              </Typography>
+
+              {pendingCount > 0 && (
+                <>
+                  <Typography variant="caption" color={theme.colors.secondaryText}>
+                    {pendingCount === 1
+                      ? 'A alteração será reenviada automaticamente quando o servidor responder.'
                       : `${pendingCount} alterações aguardando sincronização`}
                   </Typography>
-                  <Typography variant="caption" color={theme.colors.secondaryText}>
-                    O app tentará enviar automaticamente quando o servidor responder.
-                  </Typography>
-                </View>
-                <Button
-                  label="Tentar agora"
-                  variant="secondary"
-                  onPress={() => syncAll()}
-                  style={styles.retryButton}
-                />
-              </View>
-              <Spacer size="md" />
-            </Container>
-          )}
+
+                  {failedMutation?.lastError && (
+                    <Typography variant="caption" color={theme.colors.expense}>
+                      {failedMutation.lastError}
+                    </Typography>
+                  )}
+
+                  <View style={styles.syncActions}>
+                    <Button
+                      label="Tentar agora"
+                      variant="secondary"
+                      onPress={() => syncAll()}
+                      style={styles.retryButton}
+                    />
+                    <Button
+                      label="Descartar fila"
+                      variant="ghost"
+                      onPress={confirmDiscardPendingMutations}
+                      style={styles.retryButton}
+                    />
+                  </View>
+                </>
+              )}
+            </View>
+            <Spacer size="md" />
+          </Container>
 
           <BalanceHeader />
           
@@ -121,19 +214,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.expenseBorder,
   },
-  pendingCard: {
-    backgroundColor: theme.colors.accentBackground,
+  syncCard: {
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
-    borderColor: theme.colors.accent,
     gap: theme.spacing.md,
   },
-  pendingText: {
-    gap: theme.spacing.xs,
+  syncHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  syncActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
   retryButton: {
     height: 44,
     alignSelf: 'flex-start',
+    paddingHorizontal: theme.spacing.lg,
   },
 });

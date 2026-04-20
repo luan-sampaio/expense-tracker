@@ -17,19 +17,25 @@ export interface Transaction {
   description: string;
 }
 
+interface PendingMutationBase {
+  id: string;
+  createdAt: string;
+  attempts: number;
+  lastAttemptAt: string | null;
+  lastError: string | null;
+}
+
 export type PendingMutation =
-  | {
-      id: string;
+  | (PendingMutationBase & {
       type: 'upsert';
       transaction: Transaction;
-      createdAt: string;
-    }
-  | {
-      id: string;
+    })
+  | (PendingMutationBase & {
       type: 'delete';
       transactionId: string;
-      createdAt: string;
-    };
+    });
+
+export type SyncStatus = 'online' | 'offline' | 'syncing' | 'synced';
 
 export interface ExpenseState {
   transactions: Transaction[];
@@ -37,9 +43,11 @@ export interface ExpenseState {
   isLoading: boolean;
   error: string | null;
   lastSyncAt: string | null;
+  syncStatus: SyncStatus;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   removeTransaction: (id: string) => void;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => void;
   clearAll: () => void;
+  discardPendingMutations: () => void;
   syncAll: (options?: { silent?: boolean }) => Promise<void>;
 }
