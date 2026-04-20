@@ -1,107 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { api } from '../lib/api';
-import { ExpenseState, PendingMutation, Transaction } from '../types';
+import {
+  applyPendingMutations,
+  compactQueue,
+  createClientId,
+  createPendingMutation,
+  normalizeTransaction,
+  removeAppliedMutations,
+} from '../services/syncQueue';
+import { transactionsApi } from '../services/transactionsApi';
+import { ExpenseState, Transaction } from '../types';
 
 let isFlushingQueue = false;
-
-type TransactionSyncOperation = {
-  operation: 'add' | 'update' | 'remove';
-  transaction_id?: string;
-  transaction?: Transaction;
-  client_operation_id: string;
-};
-
-type TransactionSyncResult = {
-  client_operation_id: string;
-  status: 'applied' | 'failed';
-};
-
-type TransactionSyncResponse = {
-  results: TransactionSyncResult[];
-  transactions: Transaction[];
-};
-
-type PendingMutationInput =
-  | {
-      type: 'upsert';
-      transaction: Transaction;
-    }
-  | {
-      type: 'delete';
-      transactionId: string;
-    };
-
-function createMutationId() {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
-}
-
-function normalizeTransaction(transaction: Transaction): Transaction {
-  return { ...transaction, amount: Number(transaction.amount) };
-}
-
-function createPendingMutation(mutation: PendingMutationInput): PendingMutation {
-  return {
-    ...mutation,
-    id: createMutationId(),
-    createdAt: new Date().toISOString(),
-  };
-}
-
-function compactQueue(queue: PendingMutation[], next: PendingMutation) {
-  const filtered = queue.filter((mutation) => {
-    if (next.type === 'upsert') {
-      if (mutation.type === 'upsert') {
-        return mutation.transaction.id !== next.transaction.id;
-      }
-
-      return mutation.transactionId !== next.transaction.id;
-    }
-
-    if (mutation.type === 'upsert') {
-      return mutation.transaction.id !== next.transactionId;
-    }
-
-    return mutation.transactionId !== next.transactionId;
-  });
-
-  return [...filtered, next];
-}
-
-function applyPendingMutations(
-  transactions: Transaction[],
-  pendingMutations: PendingMutation[]
-) {
-  const byId = new Map(transactions.map((transaction) => [transaction.id, transaction]));
-
-  pendingMutations.forEach((mutation) => {
-    if (mutation.type === 'upsert') {
-      byId.set(mutation.transaction.id, mutation.transaction);
-      return;
-    }
-
-    byId.delete(mutation.transactionId);
-  });
-
-  return Array.from(byId.values());
-}
-
-function toSyncOperation(mutation: PendingMutation): TransactionSyncOperation {
-  if (mutation.type === 'upsert') {
-    return {
-      operation: 'update',
-      transaction: mutation.transaction,
-      client_operation_id: mutation.id,
-    };
-  }
-
-  return {
-    operation: 'remove',
-    transaction_id: mutation.transactionId,
-    client_operation_id: mutation.id,
-  };
-}
 
 function getErrorMessage(error: unknown) {
   if (error instanceof Error) {
@@ -109,16 +20,6 @@ function getErrorMessage(error: unknown) {
   }
 
   return 'Erro desconhecido ao sincronizar.';
-}
-
-async function syncPendingMutations(pendingMutations: PendingMutation[]) {
-  if (pendingMutations.length === 0) {
-    return null;
-  }
-
-  return api.post<TransactionSyncResponse>('/transactions/sync', {
-    operations: pendingMutations.map(toSyncOperation),
-  });
 }
 
 export const useExpenseStore = create<ExpenseState>()(
@@ -135,7 +36,7 @@ export const useExpenseStore = create<ExpenseState>()(
         const newTransaction: Transaction = {
           ...transaction,
           amount: Number(transaction.amount),
-          id: createMutationId(),
+          id: createClientId(),
         };
         const pendingMutation = createPendingMutation({
           type: 'upsert',
@@ -218,22 +119,27 @@ export const useExpenseStore = create<ExpenseState>()(
 
         try {
           const pendingMutations = get().pendingMutations;
-          const syncResponse = await syncPendingMutations(pendingMutations);
+          const syncResponse = await transactionsApi.sync(pendingMutations);
 
           if (syncResponse) {
-            const resultById = new Map(
-              syncResponse.results.map((result) => [result.client_operation_id, result])
-            );
+            const appliedMutationIds = syncResponse.results
+              .filter((result) => result.status === 'applied')
+              .map((result) => result.client_operation_id);
 
             set((state) => ({
-              pendingMutations: state.pendingMutations
-                .filter((mutation) => resultById.get(mutation.id)?.status !== 'applied'),
+              pendingMutations: removeAppliedMutations(
+                state.pendingMutations,
+                appliedMutationIds
+              ),
             }));
           }
 
-          const data = syncResponse?.transactions ?? await api.get<Transaction[]>('/transactions/');
+          const data = syncResponse?.transactions ?? await transactionsApi.list();
           const normalized = data.map(normalizeTransaction); // backend retorna Decimal como string
-          const localWithPending = applyPendingMutations(normalized, get().pendingMutations);
+          const localWithPending = applyPendingMutations(
+            normalized,
+            get().pendingMutations
+          );
           const hasPendingMutations = get().pendingMutations.length > 0;
 
           set({
