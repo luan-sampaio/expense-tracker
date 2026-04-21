@@ -12,7 +12,6 @@ import { Input } from '@/src/components/ui/Input';
 import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { Spacer } from '@/src/components/ui/Spacer';
-import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
 import {
   filterTransactions,
@@ -116,8 +115,9 @@ export default function HomeScreen() {
     },
   } as const;
   const currentStatusConfig = statusConfig[syncStatus];
-  const shouldShowCompactSync = syncStatus === 'synced' && pendingCount === 0 && !error;
+  const shouldHideStableSyncedStatus = syncStatus === 'synced' && pendingCount === 0 && !error;
   const shouldHideSyncCard = syncStatus === 'offline' && pendingCount === 0 && Boolean(error);
+  const shouldShowSyncBanner = !shouldHideStableSyncedStatus && !shouldHideSyncCard;
 
   const categoryFilters = useMemo(() => {
     return getTransactionCategoryIds(transactions);
@@ -182,16 +182,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {shouldShowCompactSync ? (
-        <View style={styles.section}>
-          <View style={styles.compactSync}>
-            <MaterialIcons name="cloud-done" size={18} color={theme.colors.success} />
-            <Typography variant="caption" weight="semibold" color={theme.colors.success}>
-              Tudo salvo
-            </Typography>
-          </View>
-        </View>
-      ) : !shouldHideSyncCard ? (
+      {shouldShowSyncBanner ? (
         <View style={styles.section}>
           <InfoBanner
             title={currentStatusConfig.label}
@@ -408,16 +399,6 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingHorizontal: theme.spacing.lg,
-  },
-  compactSync: {
-    alignSelf: 'flex-end',
-    minHeight: 36,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.pill,
-    backgroundColor: theme.colors.incomeBackground,
   },
   transactionsBand: {
     marginTop: theme.spacing.xl,

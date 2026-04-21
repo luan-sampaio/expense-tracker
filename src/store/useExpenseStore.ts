@@ -113,9 +113,11 @@ export const useExpenseStore = create<ExpenseState>()(
         if (isFlushingQueue) return;
 
         isFlushingQueue = true;
+        const hasPendingBeforeSync = get().pendingMutations.length > 0;
+
         if (!options?.silent) {
           set({ isLoading: true, error: null, syncStatus: 'syncing' });
-        } else {
+        } else if (hasPendingBeforeSync) {
           set({ syncStatus: 'syncing' });
         }
 
