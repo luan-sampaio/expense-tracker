@@ -1,32 +1,52 @@
 import { AppDialog } from '@/src/components/ui/AppDialog';
 import { CategoryIcon } from '@/src/components/ui/CategoryIcon';
 import { getCategoryMeta } from '@/src/constants/categories';
+import { getPendingTransactionId } from '@/src/domain/transactions';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
-import { Transaction } from '@/src/types';
-import { formatCurrency, formatShortDate } from '@/src/utils/formatters';
-import { warningFeedback } from '@/src/utils/haptics';
+import { PendingMutation, Transaction } from '@/src/types';
+import { formatCurrency, formatFriendlyDate } from '@/src/utils/formatters';
+import { impactFeedback, warningFeedback } from '@/src/utils/haptics';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
+import { useShallow } from 'zustand/react/shallow';
 
 interface Props {
   transaction: Transaction;
   onDeleted?: () => void;
 }
 
+function getPendingLabel(transaction: Transaction, pendingMutations: PendingMutation[]) {
+  const pending = pendingMutations.find((mutation) => {
+    return getPendingTransactionId(mutation) === transaction.id;
+  });
+
+  if (!pending) return null;
+
+  if (pending.type === 'create') return 'Criação pendente';
+  if (pending.type === 'update') return 'Edição pendente';
+  return 'Remoção pendente';
+}
+
 export function TransactionItem({ transaction, onDeleted }: Props) {
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
   const isIncome = transaction.type === 'income';
-  const removeTransaction = useExpenseStore((state) => state.removeTransaction);
+  const { pendingMutations, removeTransaction } = useExpenseStore(
+    useShallow((state) => ({
+      pendingMutations: state.pendingMutations,
+      removeTransaction: state.removeTransaction,
+    }))
+  );
   const categoryMeta = getCategoryMeta(transaction.category);
+  const pendingLabel = getPendingLabel(transaction, pendingMutations);
 
   const formattedAmount = formatCurrency(transaction.amount);
 
-  const dateStr = formatShortDate(transaction.date);
+  const dateStr = formatFriendlyDate(transaction.date);
 
   const handleDelete = () => {
     setIsDeleteDialogVisible(true);
@@ -54,6 +74,7 @@ export function TransactionItem({ transaction, onDeleted }: Props) {
   };
 
   const handleOpenDetails = () => {
+    impactFeedback();
     router.push({
       pathname: '/transaction/[id]',
       params: { id: transaction.id },
@@ -109,28 +130,62 @@ export function TransactionItem({ transaction, onDeleted }: Props) {
           accessibilityLabel={`Abrir detalhes de ${transaction.description}, ${categoryMeta.label}, ${formattedAmount}`}
         >
           <View style={styles.leftContent}>
-            <CategoryIcon category={categoryMeta} />
+            <View style={[styles.iconFrame, { borderColor: categoryMeta.color }]}>
+              <CategoryIcon category={categoryMeta} />
+            </View>
             <Spacer horizontal size="md" />
             <View style={styles.textContent}>
-              <Typography variant="body" weight="semibold" numberOfLines={2}>
+              <Typography
+                variant="body"
+                weight="semibold"
+                numberOfLines={1}
+                color={theme.colors.primaryText}
+              >
                 {transaction.description}
               </Typography>
               <Spacer size="xs" />
-              <Typography variant="caption" color={theme.colors.secondaryText} numberOfLines={1}>
-                {dateStr} • {categoryMeta.label}
-              </Typography>
+              <View style={styles.metaRow}>
+                <View style={styles.categoryLabel}>
+                  <Typography variant="caption" color={categoryMeta.color} weight="semibold" numberOfLines={1}>
+                    {categoryMeta.label}
+                  </Typography>
+                </View>
+                <View style={styles.metaDot} />
+                <View style={styles.dateLabel}>
+                  <Typography variant="caption" color={theme.colors.secondaryText} numberOfLines={1}>
+                    {dateStr}
+                  </Typography>
+                </View>
+              </View>
+              {pendingLabel && (
+                <>
+                  <Spacer size="xs" />
+                  <View style={styles.pendingBadge}>
+                    <View style={styles.pendingDot} />
+                    <Typography variant="caption" color={theme.colors.warning} weight="semibold">
+                      {pendingLabel}
+                    </Typography>
+                  </View>
+                </>
+              )}
             </View>
           </View>
 
-          <Typography
-            variant="body"
-            weight="semibold"
-            color={isIncome ? theme.colors.income : theme.colors.primaryText}
-            align="right"
-            style={styles.amount}
-          >
-            {isIncome ? '+' : '-'}{formattedAmount}
-          </Typography>
+          <View style={styles.amountBlock}>
+            <Typography
+              variant="body"
+              weight="bold"
+              color={isIncome ? theme.colors.income : theme.colors.expense}
+              align="right"
+              style={styles.amount}
+              numberOfLines={1}
+            >
+              {isIncome ? '+' : '-'}{formattedAmount}
+            </Typography>
+            <Typography variant="caption" color={theme.colors.secondaryText} align="right">
+              {isIncome ? 'Receita' : 'Despesa'}
+            </Typography>
+          </View>
         </TouchableOpacity>
       </Swipeable>
 
@@ -160,11 +215,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 72,
+    minHeight: 84,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
     ...theme.shadows.sm,
   },
   leftContent: {
@@ -174,12 +231,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingRight: theme.spacing.md,
   },
+  iconFrame: {
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+  },
   textContent: {
     flex: 1,
     minWidth: 0,
   },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+  },
+  categoryLabel: {
+    maxWidth: '56%',
+  },
+  dateLabel: {
+    flexShrink: 1,
+  },
+  metaDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+  },
+  pendingBadge: {
+    alignSelf: 'flex-start',
+    minHeight: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.sm,
+    borderRadius: theme.borderRadius.pill,
+    backgroundColor: theme.colors.accentBackground,
+  },
+  pendingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.warning,
+  },
+  amountBlock: {
+    maxWidth: 136,
+    alignItems: 'flex-end',
+    gap: theme.spacing.xs,
+  },
   amount: {
-    maxWidth: 128,
+    width: '100%',
   },
   editAction: {
     backgroundColor: theme.colors.primary,
