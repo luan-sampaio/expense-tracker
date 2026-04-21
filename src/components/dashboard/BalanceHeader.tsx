@@ -74,6 +74,17 @@ export function BalanceHeader() {
               </Typography>
             </View>
           </View>
+          <View style={[styles.miniCard, styles.contributionCard]}>
+            <View style={[styles.metricIcon, { backgroundColor: theme.colors.primaryBackground }]}>
+              <MaterialIcons name="savings" size={18} color={theme.colors.primary} />
+            </View>
+            <View>
+              <Typography variant="caption" color={theme.colors.secondaryText}>Aportes</Typography>
+              <Typography variant="body" weight="bold" color={theme.colors.primary} numberOfLines={1}>
+                {formatCurrency(metrics.contributions)}
+              </Typography>
+            </View>
+          </View>
         </View>
         <Spacer size="lg" />
         <View style={styles.insightsGrid}>
@@ -163,6 +174,9 @@ const styles = StyleSheet.create({
   },
   expenseCard: {
     backgroundColor: theme.colors.expenseBackground,
+  },
+  contributionCard: {
+    backgroundColor: theme.colors.primaryBackground,
   },
   metricIcon: {
     width: 32,

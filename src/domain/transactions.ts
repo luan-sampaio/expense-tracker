@@ -34,7 +34,19 @@ export function roundCurrency(value: number) {
 }
 
 export function normalizeTransaction(transaction: Transaction): Transaction {
-  return { ...transaction, amount: roundCurrency(Number(transaction.amount)) };
+  return {
+    ...transaction,
+    amount: roundCurrency(Number(transaction.amount)),
+    financialNature: transaction.type === 'expense'
+      ? transaction.financialNature ?? 'spending'
+      : undefined,
+    budgetGroupId: transaction.type === 'expense' && (transaction.financialNature ?? 'spending') === 'spending'
+      ? transaction.budgetGroupId
+      : undefined,
+    goalId: transaction.type === 'expense' && (transaction.financialNature === 'saving' || transaction.financialNature === 'investment')
+      ? transaction.goalId
+      : undefined,
+  };
 }
 
 export function createTransaction(transaction: Omit<Transaction, 'id'>): Transaction {
@@ -77,9 +89,18 @@ export function sumTransactionsByType(
     .reduce((total, transaction) => roundCurrency(total + transaction.amount), 0);
 }
 
+export function isSpendingExpense(transaction: Transaction) {
+  return transaction.type === 'expense' && (transaction.financialNature ?? 'spending') === 'spending';
+}
+
+export function isGoalContribution(transaction: Transaction) {
+  return transaction.type === 'expense'
+    && (transaction.financialNature === 'saving' || transaction.financialNature === 'investment');
+}
+
 export function groupExpensesByCategory(transactions: Transaction[]) {
   return transactions
-    .filter((transaction) => transaction.type === 'expense')
+    .filter(isSpendingExpense)
     .reduce((acc, transaction) => {
       acc[transaction.category] = roundCurrency(
         (acc[transaction.category] ?? 0) + transaction.amount

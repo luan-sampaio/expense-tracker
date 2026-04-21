@@ -75,6 +75,8 @@ export function TransactionItem({ transaction, onDeleted }: Props) {
         editType: transaction.type,
         editDate: transaction.date,
         editBudgetGroupId: transaction.budgetGroupId,
+        editFinancialNature: transaction.financialNature,
+        editGoalId: transaction.goalId,
       }
     });
   };
@@ -184,7 +186,13 @@ export function TransactionItem({ transaction, onDeleted }: Props) {
               {isIncome ? '+' : '-'}{formattedAmount}
             </Typography>
             <Typography variant="caption" color={theme.colors.secondaryText} align="right">
-              {isIncome ? 'Receita' : 'Despesa'}
+              {isIncome
+                ? 'Receita'
+                : transaction.financialNature === 'investment'
+                  ? 'Aporte'
+                  : transaction.financialNature === 'saving'
+                    ? 'Aporte'
+                    : 'Despesa'}
             </Typography>
           </View>
         </TouchableOpacity>

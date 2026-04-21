@@ -2,6 +2,8 @@ import { getCategoryMeta } from '@/src/constants/categories';
 import {
   calculateBalance,
   groupExpensesByCategory,
+  isGoalContribution,
+  isSpendingExpense,
   sumTransactionsByType,
 } from '@/src/domain/transactions';
 import { Transaction } from '@/src/types';
@@ -25,20 +27,26 @@ function summarizeMonth(transactions: Transaction[], reference: Date) {
   );
 
   const income = sumTransactionsByType(monthTransactions, 'income');
-  const expenses = sumTransactionsByType(monthTransactions, 'expense');
+  const expenses = monthTransactions
+    .filter(isSpendingExpense)
+    .reduce((total, transaction) => total + transaction.amount, 0);
+  const contributions = monthTransactions
+    .filter(isGoalContribution)
+    .reduce((total, transaction) => total + transaction.amount, 0);
   const balance = calculateBalance(monthTransactions);
 
   return {
     balance,
     income,
     expenses,
+    contributions,
     transactions: monthTransactions,
   };
 }
 
 function getTopExpense(transactions: Transaction[]) {
   return transactions
-    .filter((transaction) => transaction.type === 'expense')
+    .filter(isSpendingExpense)
     .sort((a, b) => b.amount - a.amount)[0] ?? null;
 }
 

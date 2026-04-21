@@ -1,4 +1,5 @@
 export type TransactionType = 'income' | 'expense';
+export type FinancialNature = 'spending' | 'saving' | 'investment';
 
 export type Category = 
   | 'food' 
@@ -16,6 +17,16 @@ export interface Transaction {
   type: TransactionType;
   description: string;
   budgetGroupId?: string;
+  financialNature?: FinancialNature;
+  goalId?: string;
+}
+
+export interface FinancialGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  createdAt: string;
+  isArchived?: boolean;
 }
 
 interface PendingMutationBase {
@@ -55,6 +66,7 @@ export interface BudgetSettings {
 
 export interface ExpenseState {
   transactions: Transaction[];
+  financialGoals: FinancialGoal[];
   pendingMutations: PendingMutation[];
   isLoading: boolean;
   error: string | null;
@@ -63,6 +75,9 @@ export interface ExpenseState {
   budgetSettings: BudgetSettings;
   setBudgetSettings: (settings: BudgetSettings) => void;
   setBudgetVisibility: (isVisible: boolean) => void;
+  addFinancialGoal: (goal: Omit<FinancialGoal, 'id' | 'createdAt'>) => void;
+  updateFinancialGoal: (id: string, goal: Partial<Omit<FinancialGoal, 'id' | 'createdAt'>>) => void;
+  removeFinancialGoal: (id: string) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   removeTransaction: (id: string) => void;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => void;

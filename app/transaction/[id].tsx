@@ -83,8 +83,9 @@ export default function TransactionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
   const [isDeletedDialogVisible, setIsDeletedDialogVisible] = useState(false);
-  const { transactions, pendingMutations, removeTransaction } = useExpenseStore(
+  const { financialGoals, transactions, pendingMutations, removeTransaction } = useExpenseStore(
     useShallow((state) => ({
+      financialGoals: state.financialGoals,
       transactions: state.transactions,
       pendingMutations: state.pendingMutations,
       removeTransaction: state.removeTransaction,
@@ -137,6 +138,9 @@ export default function TransactionDetailsScreen() {
         editCategory: transaction.category,
         editType: transaction.type,
         editDate: transaction.date,
+        editBudgetGroupId: transaction.budgetGroupId,
+        editFinancialNature: transaction.financialNature,
+        editGoalId: transaction.goalId,
       },
     });
   };
@@ -212,10 +216,23 @@ export default function TransactionDetailsScreen() {
         <View style={styles.section}>
           <DetailRow
             label="Tipo"
-            value={isIncome ? 'Receita' : 'Despesa'}
+            value={isIncome
+              ? 'Receita'
+              : transaction.financialNature === 'investment'
+                ? 'Aporte financeiro'
+                : transaction.financialNature === 'saving'
+                  ? 'Aporte financeiro'
+                  : 'Despesa'}
             valueColor={isIncome ? theme.colors.income : theme.colors.expense}
           />
           <DetailRow label="Categoria" value={categoryMeta.label} valueColor={categoryMeta.color} />
+          {transaction.goalId && (
+            <DetailRow
+              label="Meta"
+              value={financialGoals.find((goal) => goal.id === transaction.goalId)?.name ?? 'Meta removida'}
+              valueColor={theme.colors.primary}
+            />
+          )}
           <DetailRow label="Data" value={formatDate(transaction.date)} />
           <DetailRow label="Descrição" value={transaction.description} />
         </View>

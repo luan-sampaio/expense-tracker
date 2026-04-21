@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import {
   createPendingMutation,
+  createTransactionId,
   createTransaction,
   normalizeTransaction,
 } from '@/src/domain/transactions';
@@ -34,11 +35,26 @@ export const DEFAULT_BUDGET_SETTINGS: BudgetSettings = {
     },
     {
       groupId: 'savings',
-      label: 'Reserva',
+      label: 'Prioridade financeira',
       percentage: 20,
     },
   ],
 };
+
+function normalizeBudgetSettings(settings?: BudgetSettings): BudgetSettings {
+  const source = settings ?? DEFAULT_BUDGET_SETTINGS;
+
+  return {
+    ...DEFAULT_BUDGET_SETTINGS,
+    ...source,
+    allocations: (source.allocations.length > 0 ? source.allocations : DEFAULT_BUDGET_SETTINGS.allocations).map((allocation) => ({
+      ...allocation,
+      label: allocation.groupId === 'savings' && allocation.label === 'Reserva'
+        ? 'Prioridade financeira'
+        : allocation.label,
+    })),
+  };
+}
 
 function ensureTransactionList(data: unknown) {
   if (Array.isArray(data)) {
@@ -52,6 +68,7 @@ export const useExpenseStore = create<ExpenseState>()(
   persist(
     (set, get) => ({
       transactions: [],
+      financialGoals: [],
       pendingMutations: [],
       isLoading: false,
       error: null,
@@ -69,6 +86,38 @@ export const useExpenseStore = create<ExpenseState>()(
             ...state.budgetSettings,
             isVisible,
           },
+        }));
+      },
+
+      addFinancialGoal: (goal) => {
+        set((state) => ({
+          financialGoals: [
+            ...state.financialGoals,
+            {
+              ...goal,
+              id: createTransactionId(),
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }));
+      },
+
+      updateFinancialGoal: (id, goal) => {
+        set((state) => ({
+          financialGoals: state.financialGoals.map((item) => {
+            return item.id === id ? { ...item, ...goal } : item;
+          }),
+        }));
+      },
+
+      removeFinancialGoal: (id) => {
+        set((state) => ({
+          financialGoals: state.financialGoals.filter((goal) => goal.id !== id),
+          transactions: state.transactions.map((transaction) => {
+            return transaction.goalId === id
+              ? { ...transaction, goalId: undefined }
+              : transaction;
+          }),
         }));
       },
 
@@ -221,7 +270,7 @@ export const useExpenseStore = create<ExpenseState>()(
     {
       name: 'expense-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 1,
+      version: 2,
       migrate: (persistedState) => {
         if (!persistedState || typeof persistedState !== 'object') {
           return persistedState;
@@ -232,12 +281,13 @@ export const useExpenseStore = create<ExpenseState>()(
         return {
           ...state,
           transactions: state.transactions?.map(normalizeTransaction) ?? [],
+          financialGoals: state.financialGoals ?? [],
           pendingMutations: state.pendingMutations ?? [],
           isLoading: false,
           error: null,
           lastSyncAt: state.lastSyncAt ?? null,
           syncStatus: state.syncStatus ?? 'synced',
-          budgetSettings: state.budgetSettings ?? DEFAULT_BUDGET_SETTINGS,
+          budgetSettings: normalizeBudgetSettings(state.budgetSettings),
         };
       },
     }

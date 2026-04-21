@@ -9,7 +9,7 @@ import { Typography } from '@/src/components/ui/Typography';
 import { getCategoriesByType, getCategoryMeta } from '@/src/constants/categories';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
-import { TransactionType } from '@/src/types';
+import { FinancialNature, TransactionType } from '@/src/types';
 import { formatCurrency } from '@/src/utils/formatters';
 import { errorFeedback, impactFeedback, successFeedback } from '@/src/utils/haptics';
 import { parseAmount, TransactionFormErrors, validateTransactionForm } from '@/src/utils/validation';
@@ -59,29 +59,39 @@ function formatInitialAmount(value: string | undefined) {
 export default function ModalScreen() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const { addTransaction, budgetSettings, updateTransaction } = useExpenseStore(
+  const { addTransaction, budgetSettings, financialGoals, updateTransaction } = useExpenseStore(
     useShallow((state) => ({
       addTransaction: state.addTransaction,
       budgetSettings: state.budgetSettings,
+      financialGoals: state.financialGoals,
       updateTransaction: state.updateTransaction,
     }))
   );
   
   const isEditing = !!params.editId;
   const editId = params.editId as string | undefined;
+  const spendingBudgetGroups = budgetSettings.allocations.filter((allocation) => {
+    return allocation.groupId !== 'savings';
+  });
   const getDefaultBudgetGroupId = (nextCategory: string) => {
     const categoryGroupId = getCategoryMeta(nextCategory).budgetGroup;
-    const hasCategoryGroup = budgetSettings.allocations.some((allocation) => {
+    const hasCategoryGroup = spendingBudgetGroups.some((allocation) => {
       return allocation.groupId === categoryGroupId;
     });
 
-    return hasCategoryGroup ? categoryGroupId : budgetSettings.allocations[0]?.groupId;
+    return hasCategoryGroup ? categoryGroupId : spendingBudgetGroups[0]?.groupId;
   };
 
   const [type, setType] = useState<TransactionType>((params.editType as TransactionType) || 'expense');
   const [amount, setAmount] = useState(() => formatInitialAmount(params.editAmount as string | undefined));
   const [description, setDescription] = useState((params.editDescription as string) || '');
   const [category, setCategory] = useState<string>((params.editCategory as string) || 'other');
+  const [financialNature, setFinancialNature] = useState<FinancialNature>(() => {
+    return (params.editFinancialNature as FinancialNature | undefined) ?? 'spending';
+  });
+  const [goalId, setGoalId] = useState<string | undefined>(() => {
+    return params.editGoalId as string | undefined;
+  });
   const [budgetGroupId, setBudgetGroupId] = useState<string | undefined>(() => {
     return (params.editBudgetGroupId as string | undefined)
       ?? getDefaultBudgetGroupId((params.editCategory as string) || 'other');
@@ -142,6 +152,21 @@ export default function ModalScreen() {
 
     if (nextType === 'income') {
       setBudgetGroupId(undefined);
+      setFinancialNature('spending');
+      setGoalId(undefined);
+    }
+  };
+
+  const handleFinancialNatureChange = (nextNature: FinancialNature) => {
+    impactFeedback();
+    setFinancialNature(nextNature);
+
+    if (nextNature === 'spending') {
+      setGoalId(undefined);
+      if (!budgetGroupId) setBudgetGroupId(getDefaultBudgetGroupId(category));
+    } else {
+      setBudgetGroupId(undefined);
+      setGoalId((current) => current ?? financialGoals[0]?.id);
     }
   };
 
@@ -185,7 +210,9 @@ export default function ModalScreen() {
           type,
           category: category.trim().toLowerCase(),
           date: date.toISOString(),
-          budgetGroupId: type === 'expense' ? budgetGroupId : undefined,
+          budgetGroupId: type === 'expense' && financialNature === 'spending' ? budgetGroupId : undefined,
+          financialNature: type === 'expense' ? financialNature : undefined,
+          goalId: type === 'expense' && financialNature !== 'spending' ? goalId : undefined,
         });
       } else {
         addTransaction({
@@ -194,7 +221,9 @@ export default function ModalScreen() {
           type,
           category: category.trim().toLowerCase(),
           date: date.toISOString(),
-          budgetGroupId: type === 'expense' ? budgetGroupId : undefined,
+          budgetGroupId: type === 'expense' && financialNature === 'spending' ? budgetGroupId : undefined,
+          financialNature: type === 'expense' ? financialNature : undefined,
+          goalId: type === 'expense' && financialNature !== 'spending' ? goalId : undefined,
         });
       }
 
@@ -322,11 +351,33 @@ export default function ModalScreen() {
           {type === 'expense' && (
             <>
               <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
+                Natureza
+              </Typography>
+              <Spacer size="xs" />
+              <View style={styles.budgetGroupSelector}>
+                <Chip
+                  label="Gasto comum"
+                  selected={financialNature === 'spending'}
+                  onPress={() => handleFinancialNatureChange('spending')}
+                />
+                <Chip
+                  label="Aporte financeiro"
+                  selected={financialNature === 'saving' || financialNature === 'investment'}
+                  onPress={() => handleFinancialNatureChange('investment')}
+                />
+              </View>
+              <Spacer size="lg" />
+            </>
+          )}
+
+          {type === 'expense' && financialNature === 'spending' && (
+            <>
+              <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
                 Grupo do orçamento
               </Typography>
               <Spacer size="xs" />
               <View style={styles.budgetGroupSelector}>
-                {budgetSettings.allocations.map((allocation) => {
+                {spendingBudgetGroups.map((allocation) => {
                   const isSelected = budgetGroupId === allocation.groupId;
 
                   return (
@@ -339,6 +390,26 @@ export default function ModalScreen() {
                     />
                   );
                 })}
+              </View>
+              <Spacer size="lg" />
+            </>
+          )}
+
+          {type === 'expense' && financialNature !== 'spending' && financialGoals.length > 0 && (
+            <>
+              <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
+                Meta financeira
+              </Typography>
+              <Spacer size="xs" />
+              <View style={styles.budgetGroupSelector}>
+                {financialGoals.map((goal) => (
+                  <Chip
+                    key={goal.id}
+                    label={goal.name}
+                    selected={goalId === goal.id}
+                    onPress={() => setGoalId(goal.id)}
+                  />
+                ))}
               </View>
               <Spacer size="lg" />
             </>

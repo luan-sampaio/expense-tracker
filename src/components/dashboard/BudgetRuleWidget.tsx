@@ -4,7 +4,7 @@ import { Input } from '@/src/components/ui/Input';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
-import { isTransactionWithinPeriod, sumTransactionsByType } from '@/src/domain/transactions';
+import { isGoalContribution, isSpendingExpense, isTransactionWithinPeriod, sumTransactionsByType } from '@/src/domain/transactions';
 import { DEFAULT_BUDGET_SETTINGS, useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { BudgetAllocation, BudgetGroupId, BudgetPresetId, BudgetSettings } from '@/src/types';
@@ -32,7 +32,7 @@ const BUDGET_PRESETS: {
   {
     id: 'classic',
     label: '50/30/20',
-    description: 'Equilibrado para essenciais, livres e reserva.',
+    description: 'Equilibrado para essenciais, livres e prioridade financeira.',
     allocations: [
       {
         groupId: 'needs',
@@ -46,7 +46,7 @@ const BUDGET_PRESETS: {
       },
       {
         groupId: 'savings',
-        label: 'Reserva',
+        label: 'Prioridade financeira',
         percentage: 20,
       },
     ],
@@ -68,7 +68,7 @@ const BUDGET_PRESETS: {
       },
       {
         groupId: 'savings',
-        label: 'Reserva',
+        label: 'Prioridade financeira',
         percentage: 20,
       },
     ],
@@ -90,7 +90,7 @@ const BUDGET_PRESETS: {
       },
       {
         groupId: 'savings',
-        label: 'Reserva',
+        label: 'Prioridade financeira',
         percentage: 30,
       },
     ],
@@ -200,7 +200,7 @@ export function BudgetRuleWidget() {
       return groups;
     }, {});
 
-    monthTransactions.filter((transaction) => transaction.type === 'expense').forEach((transaction) => {
+    monthTransactions.filter(isSpendingExpense).forEach((transaction) => {
       const category = getCategoryMeta(transaction.category);
       const matchedAllocation = currentAllocations.find((allocation) => {
         return allocation.groupId === transaction.budgetGroupId;
@@ -214,6 +214,14 @@ export function BudgetRuleWidget() {
 
       if (!groupId) return;
       spentByGroup[groupId] += transaction.amount;
+    });
+
+    monthTransactions.filter(isGoalContribution).forEach((transaction) => {
+      const priorityGroupId = currentAllocations.find((allocation) => allocation.groupId === 'savings')?.groupId
+        ?? currentAllocations[0]?.groupId;
+
+      if (!priorityGroupId) return;
+      spentByGroup[priorityGroupId] += transaction.amount;
     });
 
     return {

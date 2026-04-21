@@ -1,5 +1,6 @@
 import { BalanceHeader } from '@/src/components/dashboard/BalanceHeader';
 import { BudgetRuleWidget } from '@/src/components/dashboard/BudgetRuleWidget';
+import { FinancialGoalsWidget } from '@/src/components/dashboard/FinancialGoalsWidget';
 import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
 import { AppDialog } from '@/src/components/ui/AppDialog';
 import { Badge } from '@/src/components/ui/Badge';
@@ -173,6 +174,8 @@ export default function HomeScreen() {
         />
         <Spacer size="lg" />
         <BudgetRuleWidget />
+        <Spacer size="lg" />
+        <FinancialGoalsWidget />
       </View>
 
       <View style={styles.transactionsBand}>
