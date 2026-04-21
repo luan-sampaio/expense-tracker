@@ -7,40 +7,40 @@ export const theme = {
     surfaceElevated: '#FFFDF9',
 
     // Primary — verde esmeralda sofisticado
-    primary: '#1B9C85',
+    primary: '#14796A',
     primaryLight: '#2CC5A6',
     primaryDark: '#14796A',
     primaryBackground: '#E8F6F3',
 
     // Text — tons escuros quentes
     primaryText: '#2D2A26',
-    secondaryText: '#7A756D',
-    tertiaryText: '#A9A39A',
+    secondaryText: '#5F5A52',
+    tertiaryText: '#7F786E',
 
     // Borders & Dividers — quentes
     border: '#E8E2D9',
     borderLight: '#F0EBE4',
 
     // Income — verde menta
-    income: '#1B9C85',
+    income: '#14796A',
     incomeLight: '#2CC5A6',
     incomeBackground: '#E8F6F3',
     incomeBorder: '#B3E4DA',
 
     // Expense — coral/terracota quente
-    expense: '#D4634A',
+    expense: '#B44632',
     expenseLight: '#E8816C',
     expenseBackground: '#FDF0ED',
     expenseBorder: '#F2C4B9',
 
     // Accent colors
-    accent: '#D4A04A',
+    accent: '#8A5F12',
     accentBackground: '#FDF5E6',
-    info: '#5B8DB8',
+    info: '#356C98',
     infoBackground: '#EAF1F7',
-    success: '#1B9C85',
-    warning: '#D4A04A',
-    danger: '#D4634A',
+    success: '#14796A',
+    warning: '#8A5F12',
+    danger: '#B44632',
   },
   spacing: {
     xs: 4,
@@ -71,6 +71,9 @@ export const theme = {
     lg: 20,
     xl: 28,
     pill: 9999,
+  },
+  touchTarget: {
+    min: 44,
   },
   shadows: {
     sm: {

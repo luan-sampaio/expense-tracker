@@ -23,23 +23,27 @@ const VARIANT_CONFIG = {
     color: theme.colors.info,
     backgroundColor: theme.colors.infoBackground,
     borderColor: theme.colors.info,
+    accessibilityLabel: 'Informação',
   },
   success: {
     color: theme.colors.success,
     backgroundColor: theme.colors.incomeBackground,
     borderColor: theme.colors.incomeBorder,
+    accessibilityLabel: 'Sucesso',
   },
   warning: {
     color: theme.colors.warning,
     backgroundColor: theme.colors.accentBackground,
     borderColor: theme.colors.accent,
+    accessibilityLabel: 'Atenção',
   },
   danger: {
     color: theme.colors.expense,
     backgroundColor: theme.colors.expenseBackground,
     borderColor: theme.colors.expenseBorder,
+    accessibilityLabel: 'Erro',
   },
-};
+} as const;
 
 export function InfoBanner({
   title,
@@ -65,6 +69,8 @@ export function InfoBanner({
         },
         style,
       ]}
+      accessibilityRole="summary"
+      accessibilityLabel={`${config.accessibilityLabel}: ${title}${message ? `. ${message}` : ''}`}
       {...rest}
     >
       <View style={styles.header}>
@@ -74,7 +80,7 @@ export function InfoBanner({
           ) : (
             <MaterialIcons name={iconName} size={20} color={config.color} />
           )}
-          <Typography variant="body" weight="semibold" color={config.color}>
+          <Typography variant="body" weight="bold" color={config.color}>
             {title}
           </Typography>
         </View>

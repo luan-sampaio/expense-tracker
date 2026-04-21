@@ -15,22 +15,27 @@ interface BadgeProps extends ViewProps {
 const VARIANT_COLORS = {
   primary: {
     backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
     color: theme.colors.surface,
   },
   success: {
     backgroundColor: theme.colors.incomeBackground,
+    borderColor: theme.colors.incomeBorder,
     color: theme.colors.success,
   },
   warning: {
     backgroundColor: theme.colors.accentBackground,
+    borderColor: theme.colors.accent,
     color: theme.colors.warning,
   },
   danger: {
     backgroundColor: theme.colors.expenseBackground,
+    borderColor: theme.colors.expenseBorder,
     color: theme.colors.expense,
   },
   neutral: {
     backgroundColor: theme.colors.surfaceSecondary,
+    borderColor: theme.colors.border,
     color: theme.colors.secondaryText,
   },
 } as const;
@@ -49,7 +54,10 @@ export function Badge({
       style={[
         styles.container,
         size === 'sm' && styles.small,
-        { backgroundColor: colors.backgroundColor },
+        {
+          backgroundColor: colors.backgroundColor,
+          borderColor: colors.borderColor,
+        },
         style,
       ]}
       {...rest}
@@ -69,6 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: theme.spacing.xs,
     borderRadius: theme.borderRadius.sm,
+    borderWidth: 1,
   },
   small: {
     minWidth: 18,

@@ -1,5 +1,6 @@
 import { impactFeedback } from '@/src/utils/haptics';
 import { theme } from '@/src/styles/theme';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 import { Typography } from '@/src/components/ui/Typography';
@@ -76,6 +77,7 @@ export function Chip({
           backgroundColor: selected ? config.selectedBackgroundColor : config.backgroundColor,
           borderColor: selected ? config.selectedBorderColor : config.borderColor,
         },
+        selected && styles.selected,
         disabled && styles.disabled,
         style,
       ]}
@@ -87,14 +89,16 @@ export function Chip({
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
-      accessibilityLabel={rest.accessibilityLabel ?? label}
+      accessibilityLabel={rest.accessibilityLabel ?? `${label}${selected ? ', selecionado' : ''}`}
       {...rest}
     >
+      {selected && (
+        <MaterialIcons name="check" size={16} color={disabled ? theme.colors.tertiaryText : textColor} />
+      )}
       <Typography
-        variant="caption"
+        variant={size === 'sm' ? 'caption' : 'body'}
         weight={selected ? 'semibold' : 'regular'}
         color={disabled ? theme.colors.tertiaryText : textColor}
-        numberOfLines={1}
       >
         {label}
       </Typography>
@@ -104,16 +108,21 @@ export function Chip({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 34,
+    minHeight: theme.touchTarget.min,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: theme.spacing.xs,
     paddingHorizontal: theme.spacing.md,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
   },
   small: {
-    minHeight: 28,
+    minHeight: theme.touchTarget.min,
     paddingHorizontal: theme.spacing.sm,
+  },
+  selected: {
+    borderWidth: 2,
   },
   disabled: {
     opacity: 0.55,

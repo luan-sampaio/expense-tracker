@@ -213,6 +213,11 @@ export default function ModalScreen() {
               accessibilityLabel="Selecionar tipo despesa"
               accessibilityState={{ selected: type === 'expense' }}
             >
+              {type === 'expense' && (
+                <View style={[styles.typeSelectedMark, { backgroundColor: theme.colors.expense }]}>
+                  <MaterialIcons name="check" size={14} color={theme.colors.surface} />
+                </View>
+              )}
               <MaterialIcons
                 name="arrow-downward"
                 size={20}
@@ -238,6 +243,11 @@ export default function ModalScreen() {
               accessibilityLabel="Selecionar tipo receita"
               accessibilityState={{ selected: type === 'income' }}
             >
+              {type === 'income' && (
+                <View style={[styles.typeSelectedMark, { backgroundColor: theme.colors.income }]}>
+                  <MaterialIcons name="check" size={14} color={theme.colors.surface} />
+                </View>
+              )}
               <MaterialIcons
                 name="arrow-upward"
                 size={20}
@@ -398,12 +408,24 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   expenseOptionSelected: {
+    borderWidth: 2.5,
     borderColor: theme.colors.expense,
     backgroundColor: theme.colors.expenseBackground,
   },
   incomeOptionSelected: {
+    borderWidth: 2.5,
     borderColor: theme.colors.income,
     backgroundColor: theme.colors.incomeBackground,
+  },
+  typeSelectedMark: {
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
   },
   dateButton: {
     minHeight: 52,

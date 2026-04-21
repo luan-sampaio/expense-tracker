@@ -3,6 +3,7 @@ import { getCategoriesByType } from '@/src/constants/categories';
 import { theme } from '@/src/styles/theme';
 import { TransactionType } from '@/src/types';
 import { impactFeedback } from '@/src/utils/haptics';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Typography } from '@/src/components/ui/Typography';
@@ -48,6 +49,11 @@ export function CategoryPicker({ selectedCategory, onSelectCategory, type }: Cat
               accessibilityLabel={`Selecionar categoria ${category.label}`}
               accessibilityState={{ selected: isSelected }}
             >
+              {isSelected && (
+                <View style={[styles.selectedMark, { backgroundColor: category.color }]}>
+                  <MaterialIcons name="check" size={14} color={theme.colors.surface} />
+                </View>
+              )}
               <CategoryIcon category={category} size="sm" />
               <Typography
                 variant="caption"
@@ -90,6 +96,17 @@ const styles = StyleSheet.create({
     minHeight: 88,
   },
   categoryItemSelected: {
+    borderWidth: 3,
     ...theme.shadows.sm,
+  },
+  selectedMark: {
+    position: 'absolute',
+    top: theme.spacing.xs,
+    right: theme.spacing.xs,
+    width: 22,
+    height: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
   },
 });

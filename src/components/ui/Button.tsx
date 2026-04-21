@@ -53,9 +53,9 @@ const BUTTON_VARIANTS = {
 
 const BUTTON_SIZES = {
   sm: {
-    minHeight: 40,
+    minHeight: theme.touchTarget.min,
     paddingHorizontal: theme.spacing.md,
-    textVariant: 'caption',
+    textVariant: 'body',
     iconSize: 16,
   },
   md: {
@@ -129,7 +129,6 @@ export function Button({
             weight="semibold"
             color={textColor}
             align="center"
-            numberOfLines={1}
           >
             {label}
           </Typography>

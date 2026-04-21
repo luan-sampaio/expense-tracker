@@ -12,6 +12,7 @@ import { Input } from '@/src/components/ui/Input';
 import { Period, PeriodFilter } from '@/src/components/ui/PeriodFilter';
 import { SectionHeader } from '@/src/components/ui/SectionHeader';
 import { Spacer } from '@/src/components/ui/Spacer';
+import { Typography } from '@/src/components/ui/Typography';
 import { getCategoryMeta } from '@/src/constants/categories';
 import {
   filterTransactions,
@@ -247,18 +248,24 @@ export default function HomeScreen() {
           <Spacer size="sm" />
 
           <View style={styles.filterToolbar}>
-            <View style={styles.searchBox}>
-              <MaterialIcons name="search" size={20} color={theme.colors.secondaryText} />
-              <Input
-                placeholder="Buscar descrição"
-                accessibilityLabel="Buscar transações por descrição"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                returnKeyType="search"
-                style={styles.searchInput}
-              />
+            <View style={styles.searchGroup}>
+              <Typography variant="body" weight="semibold">
+                Buscar
+              </Typography>
+              <View style={styles.searchBox}>
+                <MaterialIcons name="search" size={20} color={theme.colors.secondaryText} />
+                <Input
+                  placeholder="Descrição da transação"
+                  accessibilityLabel="Buscar transações por descrição"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="search"
+                  containerStyle={styles.searchInputContainer}
+                  style={styles.searchInput}
+                />
+              </View>
             </View>
 
             <TouchableOpacity
@@ -409,13 +416,16 @@ const styles = StyleSheet.create({
   },
   filterToolbar: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     gap: theme.spacing.sm,
   },
-  searchBox: {
+  searchGroup: {
     flex: 1,
     minWidth: 0,
-    minHeight: 46,
+    gap: theme.spacing.xs,
+  },
+  searchBox: {
+    minHeight: theme.touchTarget.min,
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.sm,
@@ -426,16 +436,19 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   searchInput: {
-    flex: 1,
-    minHeight: 44,
+    minHeight: theme.touchTarget.min,
     borderWidth: 0,
     backgroundColor: 'transparent',
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
+  searchInputContainer: {
+    flex: 1,
+    minWidth: 0,
+  },
   filterToggle: {
-    width: 46,
-    height: 46,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: theme.borderRadius.md,
@@ -444,6 +457,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceSecondary,
   },
   filterToggleActive: {
+    borderWidth: 2,
     borderColor: theme.colors.primary,
     backgroundColor: theme.colors.primaryBackground,
   },
