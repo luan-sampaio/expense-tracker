@@ -37,17 +37,6 @@ const TYPE_FILTERS: { id: TypeFilter; label: string }[] = [
   { id: 'expense', label: 'Despesas' },
 ];
 
-function formatLastSyncAt(lastSyncAt: string | null) {
-  if (!lastSyncAt) return 'Ainda não sincronizado';
-
-  return `Última sincronização: ${new Date(lastSyncAt).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })}`;
-}
-
 function TransactionSkeletonList() {
   return (
     <View style={styles.skeletonList}>
@@ -78,8 +67,6 @@ export default function HomeScreen() {
     isLoading,
     error,
     pendingMutations,
-    syncStatus,
-    lastSyncAt,
     syncAll,
   } = useExpenseStore(
     useShallow((state) => ({
@@ -87,38 +74,11 @@ export default function HomeScreen() {
       isLoading: state.isLoading,
       error: state.error,
       pendingMutations: state.pendingMutations,
-      syncStatus: state.syncStatus,
-      lastSyncAt: state.lastSyncAt,
       syncAll: state.syncAll,
     }))
   );
   const pendingCount = pendingMutations.length;
-  const statusConfig = {
-    online: {
-      label: 'Online',
-      variant: 'info',
-      iconName: 'sync',
-    },
-    offline: {
-      label: 'Offline',
-      variant: 'danger',
-      iconName: 'cloud-off',
-    },
-    syncing: {
-      label: 'Sincronizando',
-      variant: 'warning',
-      iconName: 'sync',
-    },
-    synced: {
-      label: 'Tudo salvo',
-      variant: 'success',
-      iconName: 'cloud-done',
-    },
-  } as const;
-  const currentStatusConfig = statusConfig[syncStatus];
-  const shouldHideStableSyncedStatus = syncStatus === 'synced' && pendingCount === 0 && !error;
-  const shouldHideSyncCard = syncStatus === 'offline' && pendingCount === 0 && Boolean(error);
-  const shouldShowSyncBanner = !shouldHideStableSyncedStatus && !shouldHideSyncCard;
+  const shouldShowPendingSyncBanner = pendingCount > 0 && !error;
 
   const categoryFilters = useMemo(() => {
     return getTransactionCategoryIds(transactions);
@@ -183,26 +143,22 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {shouldShowSyncBanner ? (
+      {shouldShowPendingSyncBanner ? (
         <View style={styles.section}>
           <InfoBanner
-            title={currentStatusConfig.label}
-            message={[
-              formatLastSyncAt(lastSyncAt),
+            title="Alterações pendentes"
+            message={
               pendingCount === 1
-                ? '1 alteração pendente'
-                : pendingCount > 1
-                  ? `${pendingCount} alterações pendentes`
-                  : '',
-            ].filter(Boolean).join(' • ')}
-            variant={currentStatusConfig.variant}
-            iconName={currentStatusConfig.iconName}
-            isLoading={syncStatus === 'syncing'}
-            actionLabel={pendingCount > 0 ? 'Tentar agora' : undefined}
-            onAction={pendingCount > 0 ? () => {
+                ? '1 alteração aguardando sincronização.'
+                : `${pendingCount} alterações aguardando sincronização.`
+            }
+            variant="warning"
+            iconName="schedule"
+            actionLabel="Tentar agora"
+            onAction={() => {
               impactFeedback();
               syncAll();
-            } : undefined}
+            }}
           />
         </View>
       ) : null}
