@@ -15,6 +15,7 @@ export interface Transaction {
   category: string;
   type: TransactionType;
   description: string;
+  budgetGroupId?: string;
 }
 
 interface PendingMutationBase {
@@ -37,6 +38,20 @@ export type PendingMutation =
     });
 
 export type SyncStatus = 'online' | 'offline' | 'syncing' | 'synced';
+export type BudgetGroupId = string;
+export type BudgetPresetId = 'classic' | 'essential' | 'savings' | 'custom';
+
+export interface BudgetAllocation {
+  groupId: BudgetGroupId;
+  label: string;
+  percentage: number;
+}
+
+export interface BudgetSettings {
+  isVisible: boolean;
+  presetId: BudgetPresetId;
+  allocations: BudgetAllocation[];
+}
 
 export interface ExpenseState {
   transactions: Transaction[];
@@ -45,6 +60,9 @@ export interface ExpenseState {
   error: string | null;
   lastSyncAt: string | null;
   syncStatus: SyncStatus;
+  budgetSettings: BudgetSettings;
+  setBudgetSettings: (settings: BudgetSettings) => void;
+  setBudgetVisibility: (isVisible: boolean) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   removeTransaction: (id: string) => void;
   updateTransaction: (id: string, transaction: Partial<Transaction>) => void;

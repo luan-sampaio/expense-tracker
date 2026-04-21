@@ -1,5 +1,5 @@
 import { theme } from '@/src/styles/theme';
-import { TransactionType } from '@/src/types';
+import { BudgetGroupId, TransactionType } from '@/src/types';
 import { ComponentProps } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -12,6 +12,7 @@ export type CategoryMeta = {
   color: string;
   backgroundColor: string;
   type: TransactionType;
+  budgetGroup?: BudgetGroupId;
 };
 
 export const CATEGORY_OPTIONS: CategoryMeta[] = [
@@ -22,6 +23,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.expense,
     backgroundColor: theme.colors.expenseBackground,
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'transport',
@@ -30,6 +32,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.info,
     backgroundColor: theme.colors.infoBackground,
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'housing',
@@ -38,6 +41,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.primaryDark,
     backgroundColor: theme.colors.primaryBackground,
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'entertainment',
@@ -46,6 +50,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: '#8A5FBF',
     backgroundColor: '#F2ECFA',
     type: 'expense',
+    budgetGroup: 'wants',
   },
   {
     id: 'health',
@@ -54,6 +59,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: '#B84F6A',
     backgroundColor: '#FAEDF1',
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'education',
@@ -62,6 +68,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: '#5B6FB8',
     backgroundColor: '#EEF1FA',
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'shopping',
@@ -70,6 +77,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.accent,
     backgroundColor: theme.colors.accentBackground,
     type: 'expense',
+    budgetGroup: 'wants',
   },
   {
     id: 'bills',
@@ -78,6 +86,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: '#6F7A84',
     backgroundColor: '#EEF0F2',
     type: 'expense',
+    budgetGroup: 'needs',
   },
   {
     id: 'salary',
@@ -102,6 +111,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.primaryDark,
     backgroundColor: theme.colors.primaryBackground,
     type: 'income',
+    budgetGroup: 'savings',
   },
   {
     id: 'gift',
@@ -118,6 +128,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
     color: theme.colors.secondaryText,
     backgroundColor: theme.colors.surfaceSecondary,
     type: 'expense',
+    budgetGroup: 'wants',
   },
 ];
 
@@ -136,6 +147,7 @@ export function getCategoryMeta(categoryId: string): CategoryMeta {
       color: theme.colors.secondaryText,
       backgroundColor: theme.colors.surfaceSecondary,
       type: 'expense',
+      budgetGroup: 'wants',
     }
   );
 }

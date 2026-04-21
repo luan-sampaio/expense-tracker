@@ -1,31 +1,143 @@
-import { isTransactionWithinPeriod, sumTransactionsByType } from '@/src/domain/transactions';
-import { useExpenseStore } from '@/src/store/useExpenseStore';
-import { theme } from '@/src/styles/theme';
-import { formatCurrency } from '@/src/utils/formatters';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import React, { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Button } from '@/src/components/ui/Button';
+import { Chip } from '@/src/components/ui/Chip';
+import { Input } from '@/src/components/ui/Input';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
+import { getCategoryMeta } from '@/src/constants/categories';
+import { isTransactionWithinPeriod, sumTransactionsByType } from '@/src/domain/transactions';
+import { DEFAULT_BUDGET_SETTINGS, useExpenseStore } from '@/src/store/useExpenseStore';
+import { theme } from '@/src/styles/theme';
+import { BudgetAllocation, BudgetGroupId, BudgetPresetId, BudgetSettings } from '@/src/types';
+import { formatCurrency } from '@/src/utils/formatters';
+import { impactFeedback } from '@/src/utils/haptics';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import React, { useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
+
+const GROUP_COLORS = [
+  theme.colors.info,
+  theme.colors.accent,
+  theme.colors.income,
+  theme.colors.primary,
+  theme.colors.expense,
+];
+
+const BUDGET_PRESETS: {
+  id: BudgetPresetId;
+  label: string;
+  description: string;
+  allocations: BudgetAllocation[];
+}[] = [
+  {
+    id: 'classic',
+    label: '50/30/20',
+    description: 'Equilibrado para essenciais, livres e reserva.',
+    allocations: [
+      {
+        groupId: 'needs',
+        label: 'Essenciais',
+        percentage: 50,
+      },
+      {
+        groupId: 'wants',
+        label: 'Livres',
+        percentage: 30,
+      },
+      {
+        groupId: 'savings',
+        label: 'Reserva',
+        percentage: 20,
+      },
+    ],
+  },
+  {
+    id: 'essential',
+    label: '60/20/20',
+    description: 'Mais folga para gastos fixos do mês.',
+    allocations: [
+      {
+        groupId: 'needs',
+        label: 'Essenciais',
+        percentage: 60,
+      },
+      {
+        groupId: 'wants',
+        label: 'Livres',
+        percentage: 20,
+      },
+      {
+        groupId: 'savings',
+        label: 'Reserva',
+        percentage: 20,
+      },
+    ],
+  },
+  {
+    id: 'savings',
+    label: '50/20/30',
+    description: 'Prioriza guardar mais dinheiro.',
+    allocations: [
+      {
+        groupId: 'needs',
+        label: 'Essenciais',
+        percentage: 50,
+      },
+      {
+        groupId: 'wants',
+        label: 'Livres',
+        percentage: 20,
+      },
+      {
+        groupId: 'savings',
+        label: 'Reserva',
+        percentage: 30,
+      },
+    ],
+  },
+];
 
 interface ProgressBarProps {
-  label: string;
+  allocation: BudgetAllocation;
   spent: number;
-  limit: number;
+  income: number;
   color: string;
 }
 
-function ProgressBar({ label, spent, limit, color }: ProgressBarProps) {
-  const s = Number(spent) || 0;
-  const l = Number(limit) || 0;
-  const percentage = l > 0 ? Math.min((s / l) * 100, 100) : 0;
-  const isOverBudget = s > l;
+function getPresetLabel(settings: BudgetSettings) {
+  if (settings.presetId === 'custom') return 'Personalizado';
+
+  return BUDGET_PRESETS.find((preset) => preset.id === settings.presetId)?.label ?? 'Orçamento';
+}
+
+function normalizeAllocations(allocations: BudgetAllocation[]) {
+  const source = allocations.length > 0 ? allocations : DEFAULT_BUDGET_SETTINGS.allocations;
+
+  return source.map((allocation, index) => ({
+    groupId: allocation.groupId || `group-${index + 1}`,
+    label: allocation.label?.trim() || `Grupo ${index + 1}`,
+    percentage: Number(allocation.percentage) || 0,
+  }));
+}
+
+function getGroupColor(groupId: BudgetGroupId, index: number) {
+  if (groupId === 'needs') return theme.colors.info;
+  if (groupId === 'wants') return theme.colors.accent;
+  if (groupId === 'savings') return theme.colors.income;
+
+  return GROUP_COLORS[index % GROUP_COLORS.length];
+}
+
+function ProgressBar({ allocation, spent, income, color }: ProgressBarProps) {
+  const limit = income * (allocation.percentage / 100);
+  const percentage = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
+  const isOverBudget = limit > 0 && spent > limit;
 
   return (
     <View style={styles.progressContainer}>
       <View style={styles.progressHeader}>
         <Typography variant="caption" weight="semibold">
-          {label}
+          {allocation.label} ({allocation.percentage}%)
         </Typography>
         <View style={styles.progressValue}>
           {isOverBudget && (
@@ -36,78 +148,424 @@ function ProgressBar({ label, spent, limit, color }: ProgressBarProps) {
             weight={isOverBudget ? 'semibold' : 'regular'}
             color={isOverBudget ? theme.colors.expense : theme.colors.secondaryText}
           >
-            {isOverBudget ? 'Acima do limite · ' : ''}{formatCurrency(s)} / {formatCurrency(l)}
+            {isOverBudget ? 'Acima do limite · ' : ''}{formatCurrency(spent)} / {formatCurrency(limit)}
           </Typography>
         </View>
       </View>
       <Spacer size="xs" />
       <View style={styles.track}>
-        <View 
+        <View
           style={[
-            styles.fill, 
-            { backgroundColor: isOverBudget ? theme.colors.expense : color, width: `${percentage}%` }
-          ]} 
+            styles.fill,
+            {
+              backgroundColor: isOverBudget ? theme.colors.expense : color,
+              width: `${percentage}%`,
+            },
+          ]}
         />
       </View>
     </View>
   );
 }
 
-const NEEDS_KEYWORDS = ['food', 'comida', 'mercado', 'housing', 'casa', 'aluguel', 'transport', 'transporte', 'saúde', 'conta', 'luz', 'agua'];
-const SAVINGS_KEYWORDS = ['investimento', 'poupança', 'reserva', 'saving'];
-
 export function BudgetRuleWidget() {
-  const transactions = useExpenseStore((state) => state.transactions);
+  const {
+    transactions,
+    budgetSettings,
+    setBudgetSettings,
+    setBudgetVisibility,
+  } = useExpenseStore(
+    useShallow((state) => ({
+      transactions: state.transactions,
+      budgetSettings: state.budgetSettings,
+      setBudgetSettings: state.setBudgetSettings,
+      setBudgetVisibility: state.setBudgetVisibility,
+    }))
+  );
+  const [isSettingsVisible, setIsSettingsVisible] = useState(false);
+  const [draftSettings, setDraftSettings] = useState<BudgetSettings>(budgetSettings);
+  const [settingsError, setSettingsError] = useState('');
 
+  const allocations = useMemo(() => {
+    return normalizeAllocations(budgetSettings.allocations);
+  }, [budgetSettings.allocations]);
   const budget = useMemo(() => {
     const monthTransactions = transactions.filter((transaction) => {
       return isTransactionWithinPeriod(transaction.date, 'month');
     });
     const income = sumTransactionsByType(monthTransactions, 'income');
-    let spentNeeds = 0;
-    let spentWants = 0;
-    let spentSavings = 0;
+    const currentAllocations = normalizeAllocations(budgetSettings.allocations);
+    const spentByGroup = currentAllocations.reduce<Record<BudgetGroupId, number>>((groups, allocation) => {
+      groups[allocation.groupId] = 0;
+      return groups;
+    }, {});
 
-    monthTransactions.filter((t) => t.type === 'expense').forEach((t) => {
-      const cat = t.category.toLowerCase();
-      const amount = t.amount;
-      const isNeed = NEEDS_KEYWORDS.some((k) => cat.includes(k));
-      const isSaving = SAVINGS_KEYWORDS.some((k) => cat.includes(k));
+    monthTransactions.filter((transaction) => transaction.type === 'expense').forEach((transaction) => {
+      const category = getCategoryMeta(transaction.category);
+      const matchedAllocation = currentAllocations.find((allocation) => {
+        return allocation.groupId === transaction.budgetGroupId;
+      });
+      const fallbackAllocation = currentAllocations.find((allocation) => {
+        return allocation.groupId === category.budgetGroup;
+      });
+      const groupId = matchedAllocation?.groupId
+        ?? fallbackAllocation?.groupId
+        ?? currentAllocations[0]?.groupId;
 
-      if (isSaving) spentSavings += amount;
-      else if (isNeed) spentNeeds += amount;
-      else spentWants += amount;
+      if (!groupId) return;
+      spentByGroup[groupId] += transaction.amount;
     });
 
     return {
       income,
-      spentNeeds,
-      spentWants,
-      spentSavings,
-      limitNeeds: income * 0.5,
-      limitWants: income * 0.3,
-      limitSavings: income * 0.2,
+      spentByGroup,
     };
-  }, [transactions]);
+  }, [budgetSettings.allocations, transactions]);
+
+  const draftTotal = useMemo(() => {
+    return normalizeAllocations(draftSettings.allocations).reduce((total, allocation) => {
+      return total + allocation.percentage;
+    }, 0);
+  }, [draftSettings.allocations]);
+  const isCustomDraft = draftSettings.presetId === 'custom';
+
+  const openSettings = () => {
+    impactFeedback();
+    setDraftSettings({
+      ...budgetSettings,
+      allocations,
+    });
+    setSettingsError('');
+    setIsSettingsVisible(true);
+  };
+
+  const applyPreset = (presetId: BudgetPresetId) => {
+    impactFeedback();
+
+    if (presetId === 'custom') {
+      setDraftSettings((current) => ({
+        ...current,
+        presetId: 'custom',
+        allocations: normalizeAllocations(current.allocations),
+      }));
+      return;
+    }
+
+    const preset = BUDGET_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+
+    setDraftSettings({
+      isVisible: true,
+      presetId,
+      allocations: preset.allocations,
+    });
+  };
+
+  const updateDraftPercentage = (groupId: BudgetGroupId, value: string) => {
+    const percentage = Math.min(Number(value.replace(/\D/g, '')) || 0, 100);
+
+    setDraftSettings((current) => ({
+      ...current,
+      presetId: 'custom',
+      allocations: normalizeAllocations(current.allocations).map((allocation) => {
+        if (allocation.groupId !== groupId) return allocation;
+
+        return {
+          ...allocation,
+          percentage,
+        };
+      }),
+    }));
+  };
+
+  const updateDraftLabel = (groupId: BudgetGroupId, label: string) => {
+    setDraftSettings((current) => ({
+      ...current,
+      presetId: 'custom',
+      allocations: normalizeAllocations(current.allocations).map((allocation) => {
+        if (allocation.groupId !== groupId) return allocation;
+
+        return {
+          ...allocation,
+          label,
+        };
+      }),
+    }));
+  };
+
+  const addDraftGroup = () => {
+    const groupId = `custom-${Date.now()}`;
+
+    setDraftSettings((current) => ({
+      ...current,
+      presetId: 'custom',
+      allocations: [
+        ...normalizeAllocations(current.allocations),
+        {
+          groupId,
+          label: 'Novo grupo',
+          percentage: 0,
+        },
+      ],
+    }));
+  };
+
+  const removeDraftGroup = (groupId: BudgetGroupId) => {
+    setDraftSettings((current) => {
+      const nextAllocations = normalizeAllocations(current.allocations).filter((allocation) => {
+        return allocation.groupId !== groupId;
+      });
+
+      return {
+        ...current,
+        presetId: 'custom',
+        allocations: nextAllocations.length > 0 ? nextAllocations : normalizeAllocations(current.allocations),
+      };
+    });
+  };
+
+  const saveSettings = () => {
+    const nextAllocations = normalizeAllocations(draftSettings.allocations);
+    const total = nextAllocations.reduce((sum, allocation) => sum + allocation.percentage, 0);
+
+    if (total !== 100) {
+      setSettingsError('A soma dos percentuais precisa ser 100%.');
+      return;
+    }
+
+    const hasEmptyLabel = nextAllocations.some((allocation) => allocation.label.trim().length === 0);
+    if (hasEmptyLabel) {
+      setSettingsError('Todos os grupos precisam ter nome.');
+      return;
+    }
+
+    setBudgetSettings({
+      ...draftSettings,
+      isVisible: true,
+      allocations: nextAllocations,
+    });
+    setIsSettingsVisible(false);
+  };
+
+  const hideWidget = () => {
+    impactFeedback();
+    setBudgetVisibility(false);
+    setIsSettingsVisible(false);
+  };
+
+  if (!budgetSettings.isVisible) {
+    return (
+      <Button
+        label="Mostrar orçamento"
+        variant="secondary"
+        iconName="visibility"
+        onPress={() => setBudgetVisibility(true)}
+      />
+    );
+  }
 
   if (budget.income === 0) return null;
 
   return (
-    <View style={styles.container}>
-      <Typography variant="body" weight="bold">
-        Regra 50/30/20
-      </Typography>
-      <Typography variant="caption" color={theme.colors.secondaryText}>
-        Distribuição do mês atual com base nas suas receitas:
-      </Typography>
-      <Spacer size="md" />
-      
-      <ProgressBar label="Essenciais (50%)" spent={budget.spentNeeds} limit={budget.limitNeeds} color={theme.colors.info} />
-      <Spacer size="sm" />
-      <ProgressBar label="Desejos/Livres (30%)" spent={budget.spentWants} limit={budget.limitWants} color={theme.colors.accent} />
-      <Spacer size="sm" />
-      <ProgressBar label="Poupança/Acúmulo (20%)" spent={budget.spentSavings} limit={budget.limitSavings} color={theme.colors.income} />
-    </View>
+    <>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Typography variant="body" weight="bold" style={styles.headerTitle}>
+            Orçamento {getPresetLabel(budgetSettings)}
+          </Typography>
+          <View style={styles.headerActions}>
+            <Button
+              label="Ocultar"
+              variant="ghost"
+              size="sm"
+              iconName="visibility-off"
+              onPress={hideWidget}
+              accessibilityLabel="Ocultar orçamento"
+            />
+            <Button
+              label="Ajustar"
+              variant="ghost"
+              size="sm"
+              iconName="settings"
+              onPress={openSettings}
+            />
+          </View>
+        </View>
+        <Spacer size="xs" />
+        <Typography variant="caption" color={theme.colors.secondaryText}>
+          Metas do mês baseadas nas receitas e nos grupos escolhidos em cada despesa.
+        </Typography>
+        <Spacer size="md" />
+
+        {allocations.map((allocation, index) => (
+          <React.Fragment key={allocation.groupId}>
+            <ProgressBar
+              allocation={allocation}
+              spent={budget.spentByGroup[allocation.groupId]}
+              income={budget.income}
+              color={getGroupColor(allocation.groupId, index)}
+            />
+            <Spacer size="sm" />
+          </React.Fragment>
+        ))}
+      </View>
+
+      <Modal
+        visible={isSettingsVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setIsSettingsVisible(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setIsSettingsVisible(false)}>
+          <Pressable
+            style={styles.sheet}
+            accessibilityRole="summary"
+            accessibilityLabel="Configurar orçamento mensal"
+          >
+            <View style={styles.sheetHeader}>
+              <View style={styles.headerText}>
+                <Typography variant="title" weight="bold">
+                  Orçamento mensal
+                </Typography>
+                <Typography variant="body" color={theme.colors.secondaryText}>
+                  Escolha uma regra ou personalize grupos e percentuais.
+                </Typography>
+              </View>
+              <Button
+                label="Fechar"
+                variant="ghost"
+                size="sm"
+                iconName="close"
+                onPress={() => setIsSettingsVisible(false)}
+              />
+            </View>
+
+            <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheetContent}>
+              <Typography variant="body" weight="semibold">
+                Modelo
+              </Typography>
+              <View style={styles.presetGrid}>
+                {BUDGET_PRESETS.map((preset) => (
+                  <Chip
+                    key={preset.id}
+                    label={preset.label}
+                    size="sm"
+                    selected={draftSettings.presetId === preset.id}
+                    onPress={() => applyPreset(preset.id)}
+                    accessibilityLabel={`${preset.label}. ${preset.description}`}
+                  />
+                ))}
+                <Chip
+                  label="Personalizado"
+                  size="sm"
+                  selected={draftSettings.presetId === 'custom'}
+                  onPress={() => applyPreset('custom')}
+                />
+              </View>
+
+              {isCustomDraft ? (
+                <>
+                  {normalizeAllocations(draftSettings.allocations).map((allocation, index) => (
+                    <View key={allocation.groupId} style={styles.groupEditor}>
+                      <View style={styles.groupEditorHeader}>
+                        <View style={[styles.groupColorDot, { backgroundColor: getGroupColor(allocation.groupId, index) }]} />
+                        <View style={styles.groupEditorTitle}>
+                          <Typography variant="body" weight="bold">
+                            {allocation.label || `Grupo ${index + 1}`}
+                          </Typography>
+                          <Typography variant="caption" color={theme.colors.secondaryText}>
+                            {allocation.percentage}%
+                          </Typography>
+                        </View>
+                        {normalizeAllocations(draftSettings.allocations).length > 1 && (
+                          <Button
+                            label="Remover"
+                            variant="ghost"
+                            size="sm"
+                            iconName="delete"
+                            onPress={() => removeDraftGroup(allocation.groupId)}
+                          />
+                        )}
+                      </View>
+                      <View style={styles.groupFields}>
+                        <Input
+                          label="Nome"
+                          value={allocation.label}
+                          onChangeText={(value) => updateDraftLabel(allocation.groupId, value)}
+                          accessibilityLabel={`Nome do grupo ${index + 1}`}
+                          containerStyle={styles.groupNameInput}
+                        />
+                        <Input
+                          label="Percentual"
+                          value={String(allocation.percentage)}
+                          keyboardType="number-pad"
+                          onChangeText={(value) => updateDraftPercentage(allocation.groupId, value)}
+                          accessibilityLabel={`Percentual para ${allocation.label}`}
+                          containerStyle={styles.groupPercentInput}
+                        />
+                      </View>
+                    </View>
+                  ))}
+                  <Button
+                    label="Adicionar grupo"
+                    variant="secondary"
+                    iconName="add"
+                    onPress={addDraftGroup}
+                  />
+                </>
+              ) : (
+                <View style={styles.presetSummary}>
+                  {normalizeAllocations(draftSettings.allocations).map((allocation, index) => (
+                    <View key={allocation.groupId} style={styles.summaryRow}>
+                      <View style={[styles.groupColorDot, { backgroundColor: getGroupColor(allocation.groupId, index) }]} />
+                      <Typography variant="body" weight="semibold" style={styles.summaryLabel}>
+                        {allocation.label}
+                      </Typography>
+                      <Typography variant="body" weight="bold" color={theme.colors.secondaryText}>
+                        {allocation.percentage}%
+                      </Typography>
+                    </View>
+                  ))}
+                  <Typography variant="caption" color={theme.colors.secondaryText}>
+                    Para editar nomes ou percentuais, selecione Personalizado.
+                  </Typography>
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.sheetFooter}>
+              <Typography
+                variant="caption"
+                weight="semibold"
+                color={draftTotal === 100 ? theme.colors.success : theme.colors.expense}
+              >
+                Total: {draftTotal}%
+              </Typography>
+              {settingsError && (
+                <Typography variant="caption" weight="semibold" color={theme.colors.expense}>
+                  {settingsError}
+                </Typography>
+              )}
+
+              <View style={styles.actions}>
+                <Button
+                  label="Ocultar"
+                  variant="secondary"
+                  onPress={hideWidget}
+                  style={styles.actionButton}
+                />
+                <Button
+                  label="Salvar"
+                  onPress={saveSettings}
+                  style={styles.actionButton}
+                />
+              </View>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -117,6 +575,28 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     borderRadius: theme.borderRadius.lg,
     ...theme.shadows.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: theme.spacing.sm,
+  },
+  headerTitle: {
+    flex: 1,
+    minWidth: 0,
+    paddingTop: theme.spacing.xs,
+  },
+  headerText: {
+    flex: 1,
+    minWidth: 0,
+    gap: theme.spacing.xs,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.xs,
   },
   progressContainer: {
     width: '100%',
@@ -144,5 +624,107 @@ const styles = StyleSheet.create({
   fill: {
     height: '100%',
     borderRadius: 4,
+  },
+  backdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: theme.spacing.lg,
+    backgroundColor: 'rgba(45, 42, 38, 0.42)',
+  },
+  sheet: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '86%',
+    alignSelf: 'center',
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.surface,
+    ...theme.shadows.lg,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.md,
+    padding: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+  },
+  sheetScroll: {
+    maxHeight: 480,
+  },
+  sheetContent: {
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+  },
+  sheetFooter: {
+    gap: theme.spacing.sm,
+    padding: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.borderLight,
+  },
+  presetGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  presetSummary: {
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.surfaceElevated,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  summaryLabel: {
+    flex: 1,
+  },
+  groupEditor: {
+    gap: theme.spacing.sm,
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+    backgroundColor: theme.colors.surfaceElevated,
+  },
+  groupEditorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+  },
+  groupColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  groupEditorTitle: {
+    flex: 1,
+    minWidth: 0,
+  },
+  groupFields: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  groupNameInput: {
+    flex: 2,
+    minWidth: 160,
+  },
+  groupPercentInput: {
+    flex: 1,
+    minWidth: 112,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.md,
+  },
+  actionButton: {
+    flex: 1,
+    minWidth: 128,
   },
 });

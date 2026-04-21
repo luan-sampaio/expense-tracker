@@ -74,6 +74,7 @@ export function TransactionItem({ transaction, onDeleted }: Props) {
         editCategory: transaction.category,
         editType: transaction.type,
         editDate: transaction.date,
+        editBudgetGroupId: transaction.budgetGroupId,
       }
     });
   };

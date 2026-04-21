@@ -13,10 +13,32 @@ import {
   removeAppliedMutations,
 } from '@/src/services/syncQueue';
 import { transactionsApi } from '@/src/services/transactionsApi';
-import { ExpenseState } from '@/src/types';
+import { BudgetSettings, ExpenseState } from '@/src/types';
 import { successFeedback } from '@/src/utils/haptics';
 
 let isFlushingQueue = false;
+
+export const DEFAULT_BUDGET_SETTINGS: BudgetSettings = {
+  isVisible: true,
+  presetId: 'classic',
+  allocations: [
+    {
+      groupId: 'needs',
+      label: 'Essenciais',
+      percentage: 50,
+    },
+    {
+      groupId: 'wants',
+      label: 'Livres',
+      percentage: 30,
+    },
+    {
+      groupId: 'savings',
+      label: 'Reserva',
+      percentage: 20,
+    },
+  ],
+};
 
 function ensureTransactionList(data: unknown) {
   if (Array.isArray(data)) {
@@ -35,6 +57,20 @@ export const useExpenseStore = create<ExpenseState>()(
       error: null,
       lastSyncAt: null,
       syncStatus: 'synced',
+      budgetSettings: DEFAULT_BUDGET_SETTINGS,
+
+      setBudgetSettings: (settings) => {
+        set({ budgetSettings: settings });
+      },
+
+      setBudgetVisibility: (isVisible) => {
+        set((state) => ({
+          budgetSettings: {
+            ...state.budgetSettings,
+            isVisible,
+          },
+        }));
+      },
 
       addTransaction: (transaction) => {
         const newTransaction = createTransaction(transaction);
@@ -201,6 +237,7 @@ export const useExpenseStore = create<ExpenseState>()(
           error: null,
           lastSyncAt: state.lastSyncAt ?? null,
           syncStatus: state.syncStatus ?? 'synced',
+          budgetSettings: state.budgetSettings ?? DEFAULT_BUDGET_SETTINGS,
         };
       },
     }

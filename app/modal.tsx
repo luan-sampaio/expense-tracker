@@ -1,11 +1,12 @@
 import { AppDialog } from '@/src/components/ui/AppDialog';
 import { Button } from '@/src/components/ui/Button';
 import { CategoryPicker } from '@/src/components/ui/CategoryPicker';
+import { Chip } from '@/src/components/ui/Chip';
 import { Container } from '@/src/components/ui/Container';
 import { Input } from '@/src/components/ui/Input';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
-import { getCategoriesByType } from '@/src/constants/categories';
+import { getCategoriesByType, getCategoryMeta } from '@/src/constants/categories';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { TransactionType } from '@/src/types';
@@ -58,20 +59,33 @@ function formatInitialAmount(value: string | undefined) {
 export default function ModalScreen() {
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const { addTransaction, updateTransaction } = useExpenseStore(
+  const { addTransaction, budgetSettings, updateTransaction } = useExpenseStore(
     useShallow((state) => ({
       addTransaction: state.addTransaction,
+      budgetSettings: state.budgetSettings,
       updateTransaction: state.updateTransaction,
     }))
   );
   
   const isEditing = !!params.editId;
   const editId = params.editId as string | undefined;
+  const getDefaultBudgetGroupId = (nextCategory: string) => {
+    const categoryGroupId = getCategoryMeta(nextCategory).budgetGroup;
+    const hasCategoryGroup = budgetSettings.allocations.some((allocation) => {
+      return allocation.groupId === categoryGroupId;
+    });
+
+    return hasCategoryGroup ? categoryGroupId : budgetSettings.allocations[0]?.groupId;
+  };
 
   const [type, setType] = useState<TransactionType>((params.editType as TransactionType) || 'expense');
   const [amount, setAmount] = useState(() => formatInitialAmount(params.editAmount as string | undefined));
   const [description, setDescription] = useState((params.editDescription as string) || '');
   const [category, setCategory] = useState<string>((params.editCategory as string) || 'other');
+  const [budgetGroupId, setBudgetGroupId] = useState<string | undefined>(() => {
+    return (params.editBudgetGroupId as string | undefined)
+      ?? getDefaultBudgetGroupId((params.editCategory as string) || 'other');
+  });
   const [date, setDate] = useState(() => {
     const editDate = params.editDate as string | undefined;
     return editDate ? new Date(editDate) : new Date();
@@ -121,7 +135,21 @@ export default function ModalScreen() {
     setType(nextType);
 
     if (!categoryStillAvailable) {
-      setCategory(categories[0]?.id ?? 'other');
+      const nextCategory = categories[0]?.id ?? 'other';
+      setCategory(nextCategory);
+      setBudgetGroupId(getDefaultBudgetGroupId(nextCategory));
+    }
+
+    if (nextType === 'income') {
+      setBudgetGroupId(undefined);
+    }
+  };
+
+  const handleCategorySelect = (nextCategory: string) => {
+    setCategory(nextCategory);
+
+    if (!budgetGroupId) {
+      setBudgetGroupId(getDefaultBudgetGroupId(nextCategory));
     }
   };
 
@@ -157,6 +185,7 @@ export default function ModalScreen() {
           type,
           category: category.trim().toLowerCase(),
           date: date.toISOString(),
+          budgetGroupId: type === 'expense' ? budgetGroupId : undefined,
         });
       } else {
         addTransaction({
@@ -165,6 +194,7 @@ export default function ModalScreen() {
           type,
           category: category.trim().toLowerCase(),
           date: date.toISOString(),
+          budgetGroupId: type === 'expense' ? budgetGroupId : undefined,
         });
       }
 
@@ -278,10 +308,35 @@ export default function ModalScreen() {
 
           <CategoryPicker
             selectedCategory={category}
-            onSelectCategory={setCategory}
+            onSelectCategory={handleCategorySelect}
             type={type}
           />
           <Spacer size="lg" />
+
+          {type === 'expense' && (
+            <>
+              <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
+                Grupo do orçamento
+              </Typography>
+              <Spacer size="xs" />
+              <View style={styles.budgetGroupSelector}>
+                {budgetSettings.allocations.map((allocation) => {
+                  const isSelected = budgetGroupId === allocation.groupId;
+
+                  return (
+                    <Chip
+                      key={allocation.groupId}
+                      label={allocation.label}
+                      selected={isSelected}
+                      onPress={() => setBudgetGroupId(allocation.groupId)}
+                      accessibilityLabel={`Selecionar grupo ${allocation.label}`}
+                    />
+                  );
+                })}
+              </View>
+              <Spacer size="lg" />
+            </>
+          )}
 
           <View>
             <Typography variant="caption" weight="medium" color={theme.colors.secondaryText}>
@@ -437,6 +492,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.borderLight,
     backgroundColor: theme.colors.surface,
     paddingHorizontal: theme.spacing.lg,
+  },
+  budgetGroupSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
   footer: {
     paddingHorizontal: theme.spacing.lg,
