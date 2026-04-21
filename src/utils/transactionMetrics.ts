@@ -58,20 +58,28 @@ function getTopExpenseCategory(transactions: Transaction[]) {
 
 function getExpenseComparison(currentExpenses: number, previousExpenses: number) {
   if (previousExpenses === 0) {
-    return currentExpenses > 0
-      ? 'Sem despesas no mês anterior'
-      : 'Sem despesas nos dois meses';
+    return {
+      label: currentExpenses > 0
+        ? 'Sem despesas no mês anterior'
+        : 'Sem despesas nos dois meses',
+      direction: 'neutral' as const,
+    };
   }
 
   const difference = currentExpenses - previousExpenses;
   const percentage = Math.abs((difference / previousExpenses) * 100);
-  const direction = difference > 0 ? 'acima' : 'abaixo';
 
   if (difference === 0) {
-    return 'Mesmo gasto do mês anterior';
+    return {
+      label: 'Mesmo gasto do mês anterior',
+      direction: 'neutral' as const,
+    };
   }
 
-  return `${percentage.toFixed(0)}% ${direction} do mês anterior`;
+  return {
+    label: `${percentage.toFixed(0)}% ${difference > 0 ? 'acima' : 'abaixo'} do mês anterior`,
+    direction: difference > 0 ? 'up' as const : 'down' as const,
+  };
 }
 
 export function getDashboardMetrics(transactions: Transaction[], reference = new Date()) {
