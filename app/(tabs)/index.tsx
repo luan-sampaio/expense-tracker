@@ -17,6 +17,7 @@ import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { Transaction, TransactionType } from '@/src/types';
 import { impactFeedback } from '@/src/utils/haptics';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { FlatList, ListRenderItem, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -363,9 +364,13 @@ export default function HomeScreen() {
     </View>
   ) : (
     <View style={[styles.section, styles.emptyCard]}>
-      <Typography variant="hero" align="center" style={styles.emptyIcon}>
-        {hasActiveFilters ? '🔎' : '💸'}
-      </Typography>
+      <View style={styles.emptyIconContainer}>
+        <MaterialIcons
+          name={hasActiveFilters ? 'search-off' : 'account-balance-wallet'}
+          size={34}
+          color={theme.colors.primary}
+        />
+      </View>
       <Spacer size="sm" />
       <Typography variant="body" weight="semibold" color={theme.colors.primaryText} align="center">
         {hasActiveFilters ? 'Nada encontrado' : 'Comece pelo primeiro lançamento'}
@@ -418,8 +423,13 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.xxl,
     ...theme.shadows.sm,
   },
-  emptyIcon: {
-    lineHeight: 48,
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.borderRadius.lg,
+    backgroundColor: theme.colors.primaryBackground,
   },
   emptyButton: {
     alignSelf: 'stretch',

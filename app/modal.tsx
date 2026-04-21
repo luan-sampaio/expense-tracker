@@ -1,3 +1,4 @@
+import { AppDialog } from '@/src/components/ui/AppDialog';
 import { Button } from '@/src/components/ui/Button';
 import { CategoryPicker } from '@/src/components/ui/CategoryPicker';
 import { Container } from '@/src/components/ui/Container';
@@ -13,7 +14,7 @@ import { parseAmount, TransactionFormErrors, validateTransactionForm } from '@/s
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
-import { Alert, Platform, StyleSheet, ToastAndroid, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 function formatDateLabel(date: Date) {
@@ -54,6 +55,17 @@ export default function ModalScreen() {
     return editDate ? new Date(editDate) : new Date();
   });
   const [isDatePickerVisible, setIsDatePickerVisible] = useState(false);
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    variant: 'success' | 'error';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    variant: 'success',
+  });
   const [errors, setErrors] = useState<TransactionFormErrors>({ amount: '', description: '' });
 
   const showSaveFeedback = () => {
@@ -62,15 +74,12 @@ export default function ModalScreen() {
       ? 'Transação atualizada com sucesso.'
       : 'Transação adicionada com sucesso.';
 
-    if (Platform.OS === 'android') {
-      ToastAndroid.show(message, ToastAndroid.SHORT);
-      router.back();
-      return;
-    }
-
-    Alert.alert('Tudo certo', message, [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    setDialog({
+      visible: true,
+      title: 'Tudo certo',
+      message,
+      variant: 'success',
+    });
   };
 
   const handleDateChange = (_event: DateTimePickerEvent, selectedDate?: Date) => {
@@ -98,7 +107,12 @@ export default function ModalScreen() {
     setErrors(newErrors);
     if (!isValid) {
       errorFeedback();
-      Alert.alert('Erro', 'Por favor, preencha todos os campos corretamente.');
+      setDialog({
+        visible: true,
+        title: 'Revise os campos',
+        message: 'Por favor, preencha todos os campos corretamente.',
+        variant: 'error',
+      });
       return;
     }
 
@@ -243,6 +257,21 @@ export default function ModalScreen() {
       <Spacer size="xxl" />
 
       <Button label={isEditing ? 'Salvar alterações' : 'Salvar'} onPress={handleSave} />
+
+      <AppDialog
+        visible={dialog.visible}
+        variant={dialog.variant}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={() => {
+          const shouldGoBack = dialog.variant === 'success';
+          setDialog((current) => ({ ...current, visible: false }));
+          if (shouldGoBack) {
+            router.back();
+          }
+        }}
+      />
     </Container>
   );
 }

@@ -1,10 +1,14 @@
 import { theme } from '@/src/styles/theme';
 import { TransactionType } from '@/src/types';
+import { ComponentProps } from 'react';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+
+export type CategoryIconName = ComponentProps<typeof MaterialIcons>['name'];
 
 export type CategoryMeta = {
   id: string;
   label: string;
-  icon: string;
+  iconName: CategoryIconName;
   color: string;
   backgroundColor: string;
   type: TransactionType;
@@ -14,7 +18,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'food',
     label: 'Alimentação',
-    icon: '🍔',
+    iconName: 'restaurant',
     color: theme.colors.expense,
     backgroundColor: theme.colors.expenseBackground,
     type: 'expense',
@@ -22,7 +26,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'transport',
     label: 'Transporte',
-    icon: '🚗',
+    iconName: 'directions-car',
     color: theme.colors.info,
     backgroundColor: theme.colors.infoBackground,
     type: 'expense',
@@ -30,7 +34,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'housing',
     label: 'Moradia',
-    icon: '🏠',
+    iconName: 'home',
     color: theme.colors.primaryDark,
     backgroundColor: theme.colors.primaryBackground,
     type: 'expense',
@@ -38,7 +42,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'entertainment',
     label: 'Lazer',
-    icon: '🎮',
+    iconName: 'sports-esports',
     color: '#8A5FBF',
     backgroundColor: '#F2ECFA',
     type: 'expense',
@@ -46,7 +50,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'health',
     label: 'Saúde',
-    icon: '💊',
+    iconName: 'local-hospital',
     color: '#B84F6A',
     backgroundColor: '#FAEDF1',
     type: 'expense',
@@ -54,7 +58,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'education',
     label: 'Educação',
-    icon: '📚',
+    iconName: 'school',
     color: '#5B6FB8',
     backgroundColor: '#EEF1FA',
     type: 'expense',
@@ -62,7 +66,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'shopping',
     label: 'Compras',
-    icon: '🛍️',
+    iconName: 'shopping-bag',
     color: theme.colors.accent,
     backgroundColor: theme.colors.accentBackground,
     type: 'expense',
@@ -70,7 +74,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'bills',
     label: 'Contas',
-    icon: '📄',
+    iconName: 'receipt-long',
     color: '#6F7A84',
     backgroundColor: '#EEF0F2',
     type: 'expense',
@@ -78,7 +82,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'salary',
     label: 'Salário',
-    icon: '💰',
+    iconName: 'payments',
     color: theme.colors.income,
     backgroundColor: theme.colors.incomeBackground,
     type: 'income',
@@ -86,7 +90,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'freelance',
     label: 'Freelance',
-    icon: '💼',
+    iconName: 'work',
     color: theme.colors.info,
     backgroundColor: theme.colors.infoBackground,
     type: 'income',
@@ -94,7 +98,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'investment',
     label: 'Investimento',
-    icon: '📈',
+    iconName: 'trending-up',
     color: theme.colors.primaryDark,
     backgroundColor: theme.colors.primaryBackground,
     type: 'income',
@@ -102,7 +106,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'gift',
     label: 'Presente',
-    icon: '🎁',
+    iconName: 'card-giftcard',
     color: '#8A5FBF',
     backgroundColor: '#F2ECFA',
     type: 'income',
@@ -110,7 +114,7 @@ export const CATEGORY_OPTIONS: CategoryMeta[] = [
   {
     id: 'other',
     label: 'Outros',
-    icon: '📦',
+    iconName: 'category',
     color: theme.colors.secondaryText,
     backgroundColor: theme.colors.surfaceSecondary,
     type: 'expense',
@@ -128,11 +132,10 @@ export function getCategoryMeta(categoryId: string): CategoryMeta {
     CATEGORY_OPTIONS.find((category) => category.id === categoryId) ?? {
       id: categoryId,
       label: categoryId.charAt(0).toUpperCase() + categoryId.slice(1),
-      icon: '•',
+      iconName: 'category',
       color: theme.colors.secondaryText,
       backgroundColor: theme.colors.surfaceSecondary,
       type: 'expense',
     }
   );
 }
-

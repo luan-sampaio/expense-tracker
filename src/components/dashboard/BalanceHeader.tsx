@@ -15,7 +15,7 @@ export function BalanceHeader() {
     ? `${metrics.topExpense.description} · ${formatCurrency(metrics.topExpense.amount)}`
     : 'Nenhuma despesa no mês';
   const topCategoryLabel = metrics.topExpenseCategory
-    ? `${metrics.topExpenseCategory.category.icon} ${metrics.topExpenseCategory.category.label} · ${formatCurrency(metrics.topExpenseCategory.amount)}`
+    ? `${metrics.topExpenseCategory.category.label} · ${formatCurrency(metrics.topExpenseCategory.amount)}`
     : 'Nenhuma categoria ainda';
 
   return (

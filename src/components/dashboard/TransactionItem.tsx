@@ -1,3 +1,5 @@
+import { AppDialog } from '@/src/components/ui/AppDialog';
+import { CategoryIcon } from '@/src/components/ui/CategoryIcon';
 import { getCategoryMeta } from '@/src/constants/categories';
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
@@ -5,8 +7,8 @@ import { Transaction } from '@/src/types';
 import { formatCurrency, formatShortDate } from '@/src/utils/formatters';
 import { warningFeedback } from '@/src/utils/haptics';
 import { router } from 'expo-router';
-import React from 'react';
-import { Alert, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
@@ -16,6 +18,7 @@ interface Props {
 }
 
 export function TransactionItem({ transaction }: Props) {
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
   const isIncome = transaction.type === 'income';
   const removeTransaction = useExpenseStore((state) => state.removeTransaction);
   const categoryMeta = getCategoryMeta(transaction.category);
@@ -25,17 +28,13 @@ export function TransactionItem({ transaction }: Props) {
   const dateStr = formatShortDate(transaction.date);
 
   const handleDelete = () => {
-    Alert.alert('Apagar transação?', 'Essa ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Apagar',
-        style: 'destructive',
-        onPress: () => {
-          warningFeedback();
-          removeTransaction(transaction.id);
-        },
-      },
-    ]);
+    setIsDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = () => {
+    warningFeedback();
+    removeTransaction(transaction.id);
+    setIsDeleteDialogVisible(false);
   };
 
   const handleEdit = () => {
@@ -92,52 +91,59 @@ export function TransactionItem({ transaction }: Props) {
   };
 
   return (
-    <Swipeable 
-      renderLeftActions={renderLeftActions}
-      renderRightActions={renderRightActions}
-      overshootLeft={false}
-      overshootRight={false}
-      containerStyle={styles.swipeableContainer}
-    >
-      <TouchableOpacity
-        style={styles.container}
-        onPress={handleOpenDetails}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel={`Abrir detalhes de ${transaction.description}, ${categoryMeta.label}, ${formattedAmount}`}
+    <>
+      <Swipeable
+        renderLeftActions={renderLeftActions}
+        renderRightActions={renderRightActions}
+        overshootLeft={false}
+        overshootRight={false}
+        containerStyle={styles.swipeableContainer}
       >
-        <View style={styles.leftContent}>
-          <View style={[
-            styles.iconPlaceholder, 
-            { backgroundColor: categoryMeta.backgroundColor }
-          ]}>
-             <Typography variant="title" weight="bold" color={categoryMeta.color}>
-                {categoryMeta.icon}
-             </Typography>
-          </View>
-          <Spacer horizontal size="md" />
-          <View style={styles.textContent}>
-            <Typography variant="body" weight="semibold" numberOfLines={2}>
-              {transaction.description}
-            </Typography>
-            <Spacer size="xs" />
-            <Typography variant="caption" color={theme.colors.secondaryText} numberOfLines={1}>
-              {dateStr} • {categoryMeta.label}
-            </Typography>
-          </View>
-        </View>
-
-        <Typography 
-          variant="body" 
-          weight="semibold" 
-          color={isIncome ? theme.colors.income : theme.colors.primaryText}
-          align="right"
-          style={styles.amount}
+        <TouchableOpacity
+          style={styles.container}
+          onPress={handleOpenDetails}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir detalhes de ${transaction.description}, ${categoryMeta.label}, ${formattedAmount}`}
         >
-          {isIncome ? '+' : '-'}{formattedAmount}
-        </Typography>
-      </TouchableOpacity>
-    </Swipeable>
+          <View style={styles.leftContent}>
+            <CategoryIcon category={categoryMeta} />
+            <Spacer horizontal size="md" />
+            <View style={styles.textContent}>
+              <Typography variant="body" weight="semibold" numberOfLines={2}>
+                {transaction.description}
+              </Typography>
+              <Spacer size="xs" />
+              <Typography variant="caption" color={theme.colors.secondaryText} numberOfLines={1}>
+                {dateStr} • {categoryMeta.label}
+              </Typography>
+            </View>
+          </View>
+
+          <Typography
+            variant="body"
+            weight="semibold"
+            color={isIncome ? theme.colors.income : theme.colors.primaryText}
+            align="right"
+            style={styles.amount}
+          >
+            {isIncome ? '+' : '-'}{formattedAmount}
+          </Typography>
+        </TouchableOpacity>
+      </Swipeable>
+
+      <AppDialog
+        visible={isDeleteDialogVisible}
+        variant="warning"
+        title="Apagar transação?"
+        message="Essa ação não pode ser desfeita."
+        confirmLabel="Apagar"
+        cancelLabel="Cancelar"
+        isDanger
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteDialogVisible(false)}
+      />
+    </>
   );
 }
 
@@ -164,13 +170,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingRight: theme.spacing.md,
-  },
-  iconPlaceholder: {
-    width: 48,
-    height: 48,
-    borderRadius: theme.borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   textContent: {
     flex: 1,

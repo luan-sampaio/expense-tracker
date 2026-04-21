@@ -1,3 +1,4 @@
+import { CategoryIcon } from '@/src/components/ui/CategoryIcon';
 import { getCategoriesByType } from '@/src/constants/categories';
 import { theme } from '@/src/styles/theme';
 import { TransactionType } from '@/src/types';
@@ -47,9 +48,7 @@ export function CategoryPicker({ selectedCategory, onSelectCategory, type }: Cat
               accessibilityLabel={`Selecionar categoria ${category.label}`}
               accessibilityState={{ selected: isSelected }}
             >
-              <Typography variant="heading" style={styles.icon}>
-                {category.icon}
-              </Typography>
+              <CategoryIcon category={category} size="sm" />
               <Typography
                 variant="caption"
                 weight={isSelected ? 'semibold' : 'regular'}
@@ -79,6 +78,7 @@ const styles = StyleSheet.create({
   categoryItem: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: theme.spacing.xs,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
     marginRight: theme.spacing.sm,
@@ -91,9 +91,5 @@ const styles = StyleSheet.create({
   },
   categoryItemSelected: {
     ...theme.shadows.sm,
-  },
-  icon: {
-    fontSize: 32,
-    marginBottom: theme.spacing.xs,
   },
 });

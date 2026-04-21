@@ -1,4 +1,6 @@
+import { AppDialog } from '@/src/components/ui/AppDialog';
 import { Button } from '@/src/components/ui/Button';
+import { CategoryIcon } from '@/src/components/ui/CategoryIcon';
 import { Container } from '@/src/components/ui/Container';
 import { Spacer } from '@/src/components/ui/Spacer';
 import { Typography } from '@/src/components/ui/Typography';
@@ -10,8 +12,8 @@ import { PendingMutation, Transaction } from '@/src/types';
 import { formatCurrency, formatDate } from '@/src/utils/formatters';
 import { warningFeedback } from '@/src/utils/haptics';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 function getSyncLabel(transaction: Transaction, pendingMutations: PendingMutation[]) {
@@ -66,6 +68,7 @@ function DetailRow({
 
 export default function TransactionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
   const { transactions, pendingMutations, removeTransaction } = useExpenseStore(
     useShallow((state) => ({
       transactions: state.transactions,
@@ -114,18 +117,14 @@ export default function TransactionDetailsScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert('Apagar transação?', 'Essa ação não pode ser desfeita.', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Apagar',
-        style: 'destructive',
-        onPress: () => {
-          warningFeedback();
-          removeTransaction(transaction.id);
-          router.back();
-        },
-      },
-    ]);
+    setIsDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = () => {
+    warningFeedback();
+    removeTransaction(transaction.id);
+    setIsDeleteDialogVisible(false);
+    router.back();
   };
 
   return (
@@ -133,16 +132,7 @@ export default function TransactionDetailsScreen() {
       <Stack.Screen options={{ title: 'Detalhes' }} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <View
-            style={[
-              styles.categoryIcon,
-              { backgroundColor: categoryMeta.backgroundColor },
-            ]}
-          >
-            <Typography variant="heading" color={categoryMeta.color}>
-              {categoryMeta.icon}
-            </Typography>
-          </View>
+          <CategoryIcon category={categoryMeta} size="lg" />
           <Spacer size="md" />
           <Typography variant="title" weight="bold" align="center" numberOfLines={3}>
             {transaction.description}
@@ -190,6 +180,18 @@ export default function TransactionDetailsScreen() {
           />
         </View>
       </ScrollView>
+
+      <AppDialog
+        visible={isDeleteDialogVisible}
+        variant="warning"
+        title="Apagar transação?"
+        message="Essa ação não pode ser desfeita."
+        confirmLabel="Apagar"
+        cancelLabel="Cancelar"
+        isDanger
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteDialogVisible(false)}
+      />
     </Container>
   );
 }
@@ -205,13 +207,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.xl,
     ...theme.shadows.sm,
-  },
-  categoryIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: theme.borderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   section: {
     backgroundColor: theme.colors.surface,
