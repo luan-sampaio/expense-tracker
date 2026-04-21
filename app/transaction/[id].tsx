@@ -218,7 +218,6 @@ export default function TransactionDetailsScreen() {
           <DetailRow label="Categoria" value={categoryMeta.label} valueColor={categoryMeta.color} />
           <DetailRow label="Data" value={formatDate(transaction.date)} />
           <DetailRow label="Descrição" value={transaction.description} />
-          <DetailRow label="Identificador" value={transaction.id} />
         </View>
 
         <Spacer size="xl" />
@@ -229,7 +228,8 @@ export default function TransactionDetailsScreen() {
             label="Apagar"
             variant="ghost"
             onPress={handleDelete}
-            style={styles.deleteAction}
+            style={styles.deleteButton}
+            accessibilityLabel="Apagar transação"
           />
         </View>
       </ScrollView>
@@ -327,9 +327,10 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 132,
   },
-  deleteAction: {
+  deleteButton: {
     flex: 1,
     minWidth: 132,
+    backgroundColor: theme.colors.expenseBackground,
     borderWidth: 1,
     borderColor: theme.colors.expenseBorder,
   },
