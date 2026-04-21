@@ -69,6 +69,7 @@ function DetailRow({
 export default function TransactionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
+  const [isDeletedDialogVisible, setIsDeletedDialogVisible] = useState(false);
   const { transactions, pendingMutations, removeTransaction } = useExpenseStore(
     useShallow((state) => ({
       transactions: state.transactions,
@@ -94,6 +95,17 @@ export default function TransactionDetailsScreen() {
           <Spacer size="lg" />
           <Button label="Voltar" onPress={() => router.back()} />
         </View>
+        <AppDialog
+          visible={isDeletedDialogVisible}
+          variant="success"
+          title="Transação apagada"
+          message="A exclusão foi registrada com sucesso."
+          confirmLabel="OK"
+          onConfirm={() => {
+            setIsDeletedDialogVisible(false);
+            router.back();
+          }}
+        />
       </Container>
     );
   }
@@ -125,7 +137,7 @@ export default function TransactionDetailsScreen() {
     removeTransaction(transaction.id);
     setIsDeleteDialogVisible(false);
     successFeedback();
-    router.back();
+    setIsDeletedDialogVisible(true);
   };
 
   return (
@@ -192,6 +204,18 @@ export default function TransactionDetailsScreen() {
         isDanger
         onConfirm={confirmDelete}
         onCancel={() => setIsDeleteDialogVisible(false)}
+      />
+
+      <AppDialog
+        visible={isDeletedDialogVisible}
+        variant="success"
+        title="Transação apagada"
+        message="A exclusão foi registrada com sucesso."
+        confirmLabel="OK"
+        onConfirm={() => {
+          setIsDeletedDialogVisible(false);
+          router.back();
+        }}
       />
     </Container>
   );

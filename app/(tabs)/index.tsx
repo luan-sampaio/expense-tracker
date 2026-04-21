@@ -1,6 +1,7 @@
 import { BalanceHeader } from '@/src/components/dashboard/BalanceHeader';
 import { BudgetRuleWidget } from '@/src/components/dashboard/BudgetRuleWidget';
 import { TransactionItem } from '@/src/components/dashboard/TransactionItem';
+import { AppDialog } from '@/src/components/ui/AppDialog';
 import { Button } from '@/src/components/ui/Button';
 import { Container } from '@/src/components/ui/Container';
 import { Input } from '@/src/components/ui/Input';
@@ -16,7 +17,7 @@ import {
 import { useExpenseStore } from '@/src/store/useExpenseStore';
 import { theme } from '@/src/styles/theme';
 import { Transaction, TransactionType } from '@/src/types';
-import { impactFeedback } from '@/src/utils/haptics';
+import { impactFeedback, successFeedback } from '@/src/utils/haptics';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -48,6 +49,7 @@ export default function HomeScreen() {
   const [selectedType, setSelectedType] = useState<TypeFilter>('all');
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeletedDialogVisible, setIsDeletedDialogVisible] = useState(false);
   const {
     transactions,
     isLoading,
@@ -133,7 +135,13 @@ export default function HomeScreen() {
 
   const renderTransaction: ListRenderItem<Transaction> = ({ item }) => (
     <View style={styles.section}>
-      <TransactionItem transaction={item} />
+      <TransactionItem
+        transaction={item}
+        onDeleted={() => {
+          successFeedback();
+          setIsDeletedDialogVisible(true);
+        }}
+      />
     </View>
   );
 
@@ -458,6 +466,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+      />
+      <AppDialog
+        visible={isDeletedDialogVisible}
+        variant="success"
+        title="Transação apagada"
+        message="A exclusão foi registrada com sucesso."
+        confirmLabel="OK"
+        onConfirm={() => setIsDeletedDialogVisible(false)}
       />
     </Container>
   );
